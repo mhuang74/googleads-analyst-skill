@@ -253,3 +253,33 @@ Use this comprehensive diagnostic guide to identify root causes of performance c
    - **Evidence**: Spending <10x target CPA per day
    - **Check**: Daily budget vs target CPA ratio
    - **Action**: Increase budget or switch to manual campaigns for low-budget scenarios
+
+5. **Campaign Cannibalization (Multiple PMax Campaigns)**
+   - **Evidence**:
+     - New PMax campaign launched recently
+     - Existing PMax campaign suddenly gets much MUCH LOWER clicks/conversions
+     - Strong inverse correlation: new campaign gains right near the date old campaign loses
+     - Timing correlation is near new campaign launch date
+   - **Root Cause**: Google's algorithm consolidates multiple PMax campaigns from same advertiser to the "strongest" one. Primary cause is typically:
+     1. **Final URL Expansion Mismatch** (MOST COMMON): One campaign has expansion enabled, another disabled
+     2. Domain/audience overlap between campaigns
+     3. Algorithm choosing one campaign and suppressing others
+   - **How to Diagnose**:
+     ```bash
+     # Check Final URL Expansion settings
+     mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
+
+     # Look for "FinalUrlExpansionTextAssetAutomation:OptedIn" in output
+     # If one campaign has it and another doesn't, this could be the cause for cannibalization
+
+     # Check Final URLs for each campaign
+     mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
+
+     # Confirm cannibalization timing by looking at daily performance
+     mcc-gaql --profile <profile> -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
+     ```
+   - **Action**:
+     1. **Option A - Align Settings**: Disable Final URL Expansion on new campaign to match old campaign
+     2. **Option B - Consolidate**: Merge both campaigns into single PMax with multiple asset groups
+     3. **Option C - Enable Both**: Enable expansion on old campaign (but both will still compete)
+     4. **Option D - Different Domains**: Change one campaign to target different domain/subdomain

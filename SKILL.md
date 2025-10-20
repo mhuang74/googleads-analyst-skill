@@ -1,6 +1,7 @@
 ---
 name: Generate Google Ads Performance Report
 description: Generate performance report for a Google Ads account. Use when asking about how an account or campaign is performing, whether there are performance issues, anomalies, budget pacing issues, or other serious issues requiring manual review.
+allowed-tools: Bash(mcc-gaql:*)
 ---
 
 # Generate Google Ads Performance Report
@@ -40,12 +41,12 @@ The `mcc-gaql` CLI tool retrieves campaign performance data from Google Ads usin
 
 Run mcc-gaql:
 ```bash
-mcc-gaql --profile <PROFILE_NAME> -o <TMP_FILE> <GAQL_QUERY>
+mcc-gaql --profile <PROFILE_NAME> --format csv -o <TMP_FILE> <GAQL_QUERY>
 ```
 
-Example (ALWAYS include impression share metrics):
+Example:
 ```bash
-mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+mcc-gaql --profile themade --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 ```
 
 For advanced usage of mcc-gaql, see [mcc_gaql_reference](mcc_gaql_reference.md).
@@ -185,6 +186,56 @@ Identify potential performance problems and root causes. See [identify_potential
 #### Step 5: Multi-Metric Pattern Recognition
 
 Look for common multi-metric patterns. See [common_performance_patterns_reference](common_performance_patterns_reference.md).
+
+**CRITICAL: Campaign Cannibalization Detection (Performance Max)**
+
+When analyzing Performance Max campaigns, ALWAYS check for cannibalization if:
+- Multiple PMax campaigns exist in the account
+- A new PMax campaign was recently launched
+- An existing PMax campaign suddenly stopped getting clicks/conversions (not gradual decline)
+
+**How to Detect Cannibalization:**
+
+1. **Check for Inverse Correlation Pattern**:
+   - Query daily performance for last 60 days:
+   ```bash
+   mcc-gaql --profile <profile> -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
+   ```
+   - Look for: Exact date when old campaign stops = exact date new campaign starts
+   - Red flag: 8+ consecutive days of ZERO clicks for existing campaign
+
+2. **Check Final URL Expansion Settings** (PRIMARY ROOT CAUSE):
+   ```bash
+   mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
+   ```
+   - Look for `FinalUrlExpansionTextAssetAutomation:OptedIn` in output
+   - **SMOKING GUN**: One campaign has expansion enabled, another doesn't
+   - **What it means**:
+     - **OptedIn (Enabled)**: Can target ANY page on domain (entire website)
+     - **Not present (Disabled)**: Restricted to specific URLs in asset groups
+     - **Problem**: Expanded campaign dominates ALL auctions on that domain
+
+3. **Check Final URLs for Domain Overlap**:
+   ```bash
+   mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
+   ```
+   - If campaigns target same domain → overlap exists
+   - Even if landing pages serve different purposes (e.g., supply vs demand side), URL expansion allows one campaign to dominate both
+
+4. **Check Impression Share Pattern**:
+   - Both campaigns typically show:
+     - 90%+ rank-lost impression share
+     - 0% budget-lost impression share (not budget constrained)
+   - This confirms algorithm is suppressing campaigns due to overlap, not budget
+
+**Why This Happens:**
+Google Ads prevents advertisers from competing with themselves in PMax. When overlap is detected (especially via Final URL Expansion), the algorithm consolidates to the "strongest" campaign, completely suppressing others.
+
+**Recommended Actions:**
+1. **Align Final URL Expansion settings** across all PMax campaigns
+2. **Consolidate campaigns** into single PMax with multiple asset groups
+3. **Target different domains/subdomains** to eliminate overlap
+4. **Disable expansion** on the dominant campaign to allow others to run
 
 #### Step 6: Statistical Significance Considerations
 
