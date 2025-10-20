@@ -43,9 +43,9 @@ Run mcc-gaql:
 mcc-gaql --profile <PROFILE_NAME> -o <TMP_FILE> <GAQL_QUERY>
 ```
 
-Example:
+Example (ALWAYS include impression share metrics):
 ```bash
-mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 ```
 
 For advanced usage of mcc-gaql, see [mcc_gaql_reference](mcc_gaql_reference.md).
@@ -106,6 +106,8 @@ Use this decision tree to assign status to each campaign:
 - Conversion rate drop 15-30%
 - CTR drop 10-25% without clear cause
 - Impression share loss >15%
+- Rank-lost impression share >50% (ad rank/quality issues)
+- Budget-lost impression share >20% (budget constraint)
 - ROAS decline 5-15%
 - Significant volume changes (>50% impressions change)
 
@@ -113,22 +115,78 @@ Use this decision tree to assign status to each campaign:
 - Cost increase >20% without conversion improvement
 - Conversion rate drop >30%
 - CTR drop >25% with stable impressions
+- Rank-lost impression share >70% (severe ad rank/quality problems)
+- Budget-lost impression share >50% (severe budget constraint)
 - ROAS decline >20%
 - Conversions dropped >40%
 - Cost per conversion increased >50%
 - Zero conversions with significant spend (>$100)
 
-#### Step 3: Contextual Analysis Rules
+#### Step 3: Impression Share Analysis (CRITICAL)
+
+**ALWAYS analyze impression share metrics first** - they reveal the root cause of many performance issues.
+
+**Understanding Impression Share Metrics:**
+- **Search Impression Share**: Percentage of impressions you received out of total available
+- **Budget Lost IS**: Percentage of impressions you DIDN'T get due to insufficient budget
+- **Rank Lost IS**: Percentage of impressions you DIDN'T get due to low ad rank (Quality Score × Bid)
+
+**Diagnosis Framework:**
+
+| Scenario | Budget Lost IS | Rank Lost IS | Diagnosis | Action |
+|----------|---------------|--------------|-----------|---------|
+| 🔴 **Budget Constraint** | >50% | <20% | Severe budget limitation | Increase budget immediately |
+| 🟡 **Budget Constraint** | 20-50% | <50% | Moderate budget limitation | Consider increasing budget |
+| 🔴 **Ad Rank Crisis** | <20% | >70% | Severe quality/bid issues | Fix Quality Score, increase bids, improve ad quality |
+| 🟡 **Ad Rank Issues** | <50% | 50-70% | Moderate quality/bid issues | Review Quality Score, consider bid increases |
+| 🟡 **Mixed Issues** | >30% | >30% | Both budget and quality problems | Address quality first, then budget |
+| 🟢 **Good Coverage** | <10% | <30% | Healthy impression share | Monitor and optimize |
+
+**Common Mistakes to Avoid:**
+- ❌ **DON'T recommend "increase budget"** if Budget Lost IS = 0% (this was the mistake in the themade analysis)
+- ❌ **DON'T assume budget constraint** based on spend decrease alone
+- ✅ **DO check impression share data** before making any budget recommendations
+- ✅ **DO distinguish between budget and quality issues** - they require different solutions
+
+**Root Cause Analysis:**
+- **High Rank Lost IS (>50%)** is caused by:
+  - Low Quality Score (poor ad relevance, landing page experience, or expected CTR)
+  - Bids too low relative to competition
+  - Poor ad strength/quality (especially for PMax campaigns)
+  - Weak audience signals (for PMax campaigns)
+
+- **High Budget Lost IS (>20%)** is caused by:
+  - Daily budget too low for campaign potential
+  - Budget consumed early in the day (check hour-of-day performance)
+  - Campaign scaled too quickly without budget adjustment
+
+**Recommended Actions by Issue:**
+
+For **High Rank Lost IS**:
+1. Review Quality Score components (for Search campaigns)
+2. Audit ad/asset strength (for PMax campaigns)
+3. Improve landing page experience (speed, mobile, relevance)
+4. Add high-quality audience signals (customer lists, website visitors)
+5. Increase bids by 20-30% if willing to pay more
+6. Refresh creative to improve relevance
+
+For **High Budget Lost IS**:
+1. Increase daily budget (start with 20-50% increase)
+2. Review hour-of-day data to see if budget depletes early
+3. Consider Campaign Budget Optimization (CBO) strategies
+4. Evaluate if campaign is profitable enough to warrant more budget
+
+#### Step 4: Contextual Analysis Rules
 
 Don't just look at individual metrics - understand the relationships between metrics. See [contextual_analysis_rules_reference](contextual_analysis_rules_reference.md).
 
 Identify potential performance problems and root causes. See [identify_potential_causes](identify_potential_causes.md).
 
-#### Step 4: Multi-Metric Pattern Recognition
+#### Step 5: Multi-Metric Pattern Recognition
 
 Look for common multi-metric patterns. See [common_performance_patterns_reference](common_performance_patterns_reference.md).
 
-#### Step 5: Statistical Significance Considerations
+#### Step 6: Statistical Significance Considerations
 
 Be cautious with conclusions when sample sizes are small:
 
@@ -154,7 +212,7 @@ When dealing with small samples, look for:
 - Supporting evidence from other metrics
 
 
-#### Step 6: Priority Classification
+#### Step 7: Priority Classification
 
 Assign priority levels to issues for action planning:
 
@@ -172,9 +230,11 @@ Assign priority levels to issues for action planning:
 2. Conversion rate drop 15-30%
 3. CTR drop 10-25%
 4. Impression share loss >15%
-5. ROAS decline 10-20%
-6. CPA increase 20-50%
-7. Impression volume changes >50% (investigate cause)
+5. Rank-lost impression share 50-70% (ad rank/quality issues)
+6. Budget-lost impression share 20-50% (budget constraint)
+7. ROAS decline 10-20%
+8. CPA increase 20-50%
+9. Impression volume changes >50% (investigate cause)
 
 **📊 LOW PRIORITY (Monitor / Informational)**
 1. Minor fluctuations (<10% on most metrics)
@@ -213,6 +273,7 @@ Provide a structured analysis with:
 4. **Detailed Campaign Analysis** (table format)
    - Campaign name
    - Key metrics with period-over-period changes
+   - **ALWAYS include impression share metrics** (Search IS, Budget Lost IS, Rank Lost IS)
    - Status indicator (🟢 Good, 🟡 Monitor, 🔴 Issue)
 
 ## Example Interaction
@@ -234,11 +295,11 @@ mcc-gaql --profile themade 'SELECT segments.date, campaign.name, metrics.impress
 
 **Step 2: Query both periods and save to files**
 ```bash
-# Query current period
-mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+# Query current period (ALWAYS include impression share metrics)
+mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 
-# Query previous period
-mcc-gaql --profile themade -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+# Query previous period (ALWAYS include impression share metrics)
+mcc-gaql --profile themade -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
 ```
 
 **Step 3: Read and parse the CSV files**
@@ -252,9 +313,17 @@ For each campaign:
 - Calculate CPA = cost / conversions
 - Calculate ROAS = conversions_value / cost
 - Calculate percentage changes for all metrics
+- **Analyze impression share metrics**:
+  - Search Impression Share: % of impressions received
+  - Budget Lost IS: % of impressions lost due to budget constraints
+  - Rank Lost IS: % of impressions lost due to ad rank/quality score
 - Determine health status (🟢 🟡 🔴)
 
 **Step 5: Analyze patterns and identify issues**
+- **Check impression share metrics first** - this reveals root causes:
+  - High Budget Lost IS → increase budget
+  - High Rank Lost IS → improve Quality Score, increase bids, or fix ad rank issues
+  - Low overall IS → limited reach, growth opportunity if fixed
 - Look for budget constraint patterns
 - Check for ad fatigue indicators
 - Identify conversion tracking issues
@@ -264,11 +333,12 @@ For each campaign:
 **Step 6: Present comprehensive report**
 Structure:
 1. **Executive Summary** (2-3 sentences on overall performance)
-2. **Detailed Campaign Analysis** (table with metrics and changes)
-3. **🚨 HIGH PRIORITY Issues** (with specific diagnoses and actions)
+2. **Detailed Campaign Analysis** (table with metrics, changes, and **impression share data**)
+3. **🚨 HIGH PRIORITY Issues** (with specific diagnoses and actions, **include impression share insights**)
 4. **⚠️ MEDIUM PRIORITY Issues** (with recommendations)
 5. **📊 Account-Level Summary** (aggregate totals)
 6. **🎯 Next Steps Priority List** (actionable timeline)
+7. **Appendix with impression share insights** (flag budget vs rank issues)
 
 For common errors and solutions, see [common_errors_reference](common_errors_reference.md).
 
@@ -352,9 +422,11 @@ Immediately flag these critical issues:
 - [ ] Top of report has Google Ads Account Name and Account Number
 - [ ] Date ranges clearly stated and accurate
 - [ ] All costs converted from micros to dollars
+- [ ] **Impression share metrics included in all tables** (Search IS, Budget Lost IS, Rank Lost IS)
+- [ ] **Impression share analysis performed** - budget vs rank issues identified
 - [ ] Campaign health status assigned (🟢 🟡 🔴)
 - [ ] Issues prioritized (HIGH, MEDIUM, LOW)
-- [ ] Specific actions recommended for each issue
+- [ ] Specific actions recommended for each issue **based on impression share data**
 - [ ] Account-level totals calculated and presented
 - [ ] Sample size concerns noted where relevant
 - [ ] Next steps with timeline provided
