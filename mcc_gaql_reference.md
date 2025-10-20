@@ -12,7 +12,7 @@
 **Common Options:**
 ```bash
 --profile <PROFILE>        # Use named profile for authentication
---format <FORMAT>          # Output format: table (default), csv, json
+--format <FORMAT>          # Output format: use `csv` for daily data, otherwise, `json`
 -o <OUTPUT>                # Save output to file (useful for large datasets)
 --list-child-accounts      # List all accessible child accounts
 -c <CUSTOMER_ID>           # Query specific customer account
@@ -26,7 +26,7 @@
 Before querying data, verify you have access to the account:
 
 ```bash
-mcc-gaql --profile <PROFILE_NAME> --list-child-accounts
+mcc-gaql --profile <PROFILE_NAME> --list-child-accounts --format json
 ```
 
 This returns a table with:

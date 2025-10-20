@@ -267,16 +267,16 @@ Use this comprehensive diagnostic guide to identify root causes of performance c
    - **How to Diagnose**:
      ```bash
      # Check Final URL Expansion settings
-     mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
+     mcc-gaql --profile <profile> --format json 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
 
      # Look for "FinalUrlExpansionTextAssetAutomation:OptedIn" in output
      # If one campaign has it and another doesn't, this could be the cause for cannibalization
 
      # Check Final URLs for each campaign
-     mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
+     mcc-gaql --profile <profile> --format json 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
 
      # Confirm cannibalization timing by looking at daily performance
-     mcc-gaql --profile <profile> -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
+     mcc-gaql --profile <profile> --format csv -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
      ```
    - **Action**:
      1. **Option A - Align Settings**: Disable Final URL Expansion on new campaign to match old campaign

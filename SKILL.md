@@ -41,8 +41,11 @@ The `mcc-gaql` CLI tool retrieves campaign performance data from Google Ads usin
 
 Run mcc-gaql:
 ```bash
-mcc-gaql --profile <PROFILE_NAME> --format csv -o <TMP_FILE> <GAQL_QUERY>
+mcc-gaql --profile <PROFILE_NAME> --format csv|json -o <TMP_FILE> <GAQL_QUERY>
 ```
+
+- by default, use `--format json` for LLM friendly format
+- for large datasets (segmented by DATE), use `--format csv` to reduce tokens
 
 Example:
 ```bash
@@ -199,14 +202,14 @@ When analyzing Performance Max campaigns, ALWAYS check for cannibalization if:
 1. **Check for Inverse Correlation Pattern**:
    - Query daily performance for last 60 days:
    ```bash
-   mcc-gaql --profile <profile> -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
+   mcc-gaql --profile <profile> --format csv -o /tmp/pmax_daily.csv 'SELECT campaign.name, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND segments.date DURING LAST_60_DAYS ORDER BY campaign.name, segments.date'
    ```
    - Look for: Exact date when old campaign stops = exact date new campaign starts
    - Red flag: 8+ consecutive days of ZERO clicks for existing campaign
 
 2. **Check Final URL Expansion Settings** (PRIMARY ROOT CAUSE):
    ```bash
-   mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
+   mcc-gaql --profile <profile> --format json 'SELECT campaign.id, campaign.name, campaign.asset_automation_settings FROM campaign WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX" AND campaign.status = "ENABLED"'
    ```
    - Look for `FinalUrlExpansionTextAssetAutomation:OptedIn` in output
    - **SMOKING GUN**: One campaign has expansion enabled, another doesn't
@@ -217,7 +220,7 @@ When analyzing Performance Max campaigns, ALWAYS check for cannibalization if:
 
 3. **Check Final URLs for Domain Overlap**:
    ```bash
-   mcc-gaql --profile <profile> 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
+   mcc-gaql --profile <profile> --format json 'SELECT campaign.id, campaign.name, asset_group.id, asset_group.name, asset_group.final_urls, asset_group.final_mobile_urls FROM asset_group WHERE campaign.advertising_channel_type = "PERFORMANCE_MAX"'
    ```
    - If campaigns target same domain → overlap exists
    - Even if landing pages serve different purposes (e.g., supply vs demand side), URL expansion allows one campaign to dominate both
@@ -340,17 +343,17 @@ Provide a structured analysis with:
 # Previous period: 2025-10-05 to 2025-10-11 (previous 7 days)
 
 # First, verify access and check latest data
-mcc-gaql --profile themade --list-child-accounts
-mcc-gaql --profile themade 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 10'
+mcc-gaql --profile themade --format json --list-child-accounts
+mcc-gaql --profile themade --format csv 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 10'
 ```
 
 **Step 2: Query both periods and save to files**
 ```bash
 # Query current period (ALWAYS include impression share metrics)
-mcc-gaql --profile themade -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+mcc-gaql --profile themade --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 
 # Query previous period (ALWAYS include impression share metrics)
-mcc-gaql --profile themade -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+mcc-gaql --profile themade --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
 ```
 
 **Step 3: Read and parse the CSV files**
