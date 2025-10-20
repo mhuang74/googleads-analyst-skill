@@ -3,6 +3,7 @@
 **Key Features:**
 - Query multiple child accounts under an MCC
 - Profile-based authentication (`--profile` flag)
+- LLM friendly output format (`--format csv` flag)
 - Export results to CSV/files (`-o` flag)
 - List available child accounts (`--list-child-accounts`)
 - Natural language query conversion (`-n` flag)
@@ -11,6 +12,7 @@
 **Common Options:**
 ```bash
 --profile <PROFILE>        # Use named profile for authentication
+--format <FORMAT>          # Output format: table (default), csv, json
 -o <OUTPUT>                # Save output to file (useful for large datasets)
 --list-child-accounts      # List all accessible child accounts
 -c <CUSTOMER_ID>           # Query specific customer account
@@ -39,13 +41,13 @@ Check what data exists before running full queries:
 
 ```bash
 # Check for recent campaign data
-mcc-gaql --profile <PROFILE_NAME> 'SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10'
+mcc-gaql --profile <PROFILE_NAME> --format json 'SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10'
 
 # Check for active campaigns with impressions
-mcc-gaql --profile <PROFILE_NAME> 'SELECT campaign.name, metrics.impressions, metrics.clicks FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS AND metrics.impressions > 0'
+mcc-gaql --profile <PROFILE_NAME> --format json 'SELECT campaign.name, metrics.impressions, metrics.clicks FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS AND metrics.impressions > 0'
 
 # View daily breakdown to find latest data date
-mcc-gaql --profile <PROFILE_NAME> 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 20'
+mcc-gaql --profile <PROFILE_NAME> --format csv 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 20'
 ```
 
 **Step 3: Determine Appropriate Date Ranges**
@@ -93,10 +95,10 @@ The following metrics may cause queries to return no results when combined:
 
 ```bash
 # Save to file for easier parsing (RECOMMENDED approach)
-mcc-gaql --profile <PROFILE_NAME> -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+mcc-gaql --profile <PROFILE_NAME> --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 
 # For previous period
-mcc-gaql --profile <PROFILE_NAME> -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+mcc-gaql --profile <PROFILE_NAME> --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
 ```
 
 Then read the CSV files to parse and analyze the data.
@@ -105,23 +107,23 @@ Then read the CSV files to parse and analyze the data.
 
 **Example 1: Basic Campaign Performance Query**
 ```bash
-mcc-gaql --profile themade 'SELECT campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE segments.date = "2025-10-18"'
+mcc-gaql --profile themade --format json 'SELECT campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE segments.date = "2025-10-18"'
 ```
 
 **Example 2: Active Campaigns with Activity Filter**
 ```bash
-mcc-gaql --profile themade 'SELECT campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS AND metrics.impressions > 0 ORDER BY metrics.cost_micros DESC'
+mcc-gaql --profile themade --format json 'SELECT campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS AND metrics.impressions > 0 ORDER BY metrics.cost_micros DESC'
 ```
 
 **Example 3: Daily Trend Analysis**
 ```bash
-mcc-gaql --profile themade -o /tmp/daily_trends.csv 'SELECT segments.date, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.status = "ENABLED" AND segments.date BETWEEN "2025-10-01" AND "2025-10-18" ORDER BY segments.date DESC, metrics.cost_micros DESC'
+mcc-gaql --profile themade --format csv -o /tmp/daily_trends.csv 'SELECT segments.date, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.status = "ENABLED" AND segments.date BETWEEN "2025-10-01" AND "2025-10-18" ORDER BY segments.date DESC, metrics.cost_micros DESC'
 ```
 
 **Example 4: Period Aggregated Data (No Date Segment)**
 ```bash
 # When you want totals for a period without daily breakdown
-mcc-gaql --profile themade 'SELECT campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18"'
+mcc-gaql --profile themade --format json 'SELECT campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18"'
 ```
 
 #### Common Query Issues and Solutions
@@ -205,6 +207,11 @@ OPTIONS:
 
     -f, --field-service
             Query GoogleAdsFieldService to retrieve available fields
+
+        --format <FORMAT>
+            Output format: table, csv, json
+            
+            [default: table]
 
         --groupby <GROUPBY>
             Group by columns
