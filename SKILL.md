@@ -432,3 +432,5 @@ Immediately flag these critical issues:
 - [ ] Next steps with timeline provided
 - [ ] Executive summary captures key points
 - [ ] Data quality issues flagged if any
+- [ ] **Appendix with current/prior period data tables included** (see [Appendix Requirements](appendix_reference.md))
+
