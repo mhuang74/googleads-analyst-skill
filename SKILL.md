@@ -85,42 +85,20 @@ For advanced usage of mcc-gaql, see [mcc_gaql_reference](mcc_gaql_reference.md).
 
 Follow this systematic framework to analyze campaign performance data.
 
-#### Step 1: Calculate Period-over-Period Changes
+#### Step 1: Convert Currency and Calculate Derived Metrics
 
-For each campaign, calculate changes between current and previous periods:
+**⚠️ CRITICAL: Always convert cost_micros to dollars FIRST before any other calculations**
 
-**Absolute Changes:**
 ```python
-impressions_change = current_impressions - previous_impressions
-clicks_change = current_clicks - previous_clicks
-cost_change = current_cost - previous_cost
-conversions_change = current_conversions - previous_conversions
+# MUST DO FIRST - Convert from micros to dollars
+cost_dollars = cost_micros / 1_000_000
+
+# Example: cost_micros = 859,918,906.0 → cost_dollars = $859.92 (NOT $859,918!)
 ```
 
-**Percentage Changes:**
-```python
-def calculate_percent_change(current, previous):
-    if previous == 0:
-        return "N/A" if current == 0 else "∞"
-    return ((current - previous) / previous) * 100
+**Then calculate derived metrics and period-over-period changes.**
 
-impressions_pct = calculate_percent_change(current_impressions, previous_impressions)
-clicks_pct = calculate_percent_change(current_clicks, previous_clicks)
-cost_pct = calculate_percent_change(current_cost, previous_cost)
-conversions_pct = calculate_percent_change(current_conversions, previous_conversions)
-ctr_pct = calculate_percent_change(current_ctr, previous_ctr)
-```
-
-**Efficiency Metrics:**
-```python
-current_cpa = current_cost / current_conversions if current_conversions > 0 else 0
-previous_cpa = previous_cost / previous_conversions if previous_conversions > 0 else 0
-cpa_change = calculate_percent_change(current_cpa, previous_cpa)
-
-current_roas = current_conv_value / current_cost if current_cost > 0 else 0
-previous_roas = previous_conv_value / previous_cost if previous_cost > 0 else 0
-roas_change = calculate_percent_change(current_roas, previous_roas)
-```
+For detailed instructions on currency conversion, validation checks, and calculating all derived metrics, see [derived_metrics_reference.md](derived_metrics_reference.md).
 
 #### Step 2: Determine Campaign Health Status
 
@@ -392,9 +370,8 @@ mcc-gaql --profile themade --format csv -o /tmp/previous_period.csv 'SELECT camp
 
 **Step 4: Calculate metrics and changes**
 For each campaign:
-- Convert cost_micros to dollars (÷ 1,000,000)
-- Calculate CPA = cost / conversions
-- Calculate ROAS = conversions_value / cost
+- **FIRST: Convert cost_micros to dollars (÷ 1,000,000) and validate** - see [derived_metrics_reference.md](derived_metrics_reference.md)
+- Calculate derived metrics (CPA, ROAS, conversion rate, etc.)
 - Calculate percentage changes for all metrics
 - **Analyze impression share metrics**:
   - Search Impression Share: % of impressions received
@@ -470,7 +447,7 @@ mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --for
 Before presenting analysis, verify:
 
 1. **Data Completeness**: Do all campaigns have data for both periods?
-2. **Cost Conversion**: Have you converted cost_micros to dollars?
+2. **Cost Conversion**: Have you converted cost_micros to dollars correctly (÷ 1,000,000) and validated ranges? See [derived_metrics_reference.md](derived_metrics_reference.md)
 3. **Null/Zero Handling**: Are you handling division by zero in calculations?
 4. **Date Alignment**: Are both periods the same length (both 7 days, etc.)?
 5. **Campaign Matching**: Did you correctly match campaigns by ID between periods?
@@ -519,11 +496,11 @@ Immediately flag these critical issues:
    - MEDIUM PRIORITY = this week
    - LOW PRIORITY = monitor ongoing
 
-6. **Calculate all derived metrics** even if not in API response:
-   - Conversion Rate = conversions / clicks × 100
-   - CPA = cost / conversions
-   - ROAS = conversion_value / cost
-   - Account totals and averages
+6. **Calculate all derived metrics correctly**:
+   - **FIRST: Convert cost_micros to dollars** (÷ 1,000,000)
+   - Then calculate CPA, ROAS, conversion rate, etc.
+   - See [derived_metrics_reference.md](derived_metrics_reference.md) for all formulas
+   - Calculate account totals and averages
 
 7. **Pattern recognition over individual metrics**:
    - Look for clusters of related changes
@@ -544,7 +521,8 @@ Immediately flag these critical issues:
 
 - [ ] Top of report has Google Ads Account Name and Account Number
 - [ ] Date ranges clearly stated and accurate
-- [ ] All costs converted from micros to dollars
+- [ ] **All costs converted from micros to dollars correctly** (÷ 1,000,000) - see [derived_metrics_reference.md](derived_metrics_reference.md)
+- [ ] **Cost values validated** - typical ranges: $1-$10k daily, no suspiciously high/low values
 - [ ] **Impression share metrics included in all tables** (Search IS, Budget Lost IS, Rank Lost IS)
 - [ ] **Impression share analysis performed** - budget vs rank issues identified
 - [ ] Campaign health status assigned (🟢 🟡 🔴)
