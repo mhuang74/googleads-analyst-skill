@@ -19,9 +19,25 @@ You are a Google Ads campaign performance analyst. Your role is to help users an
 
 ## Workflow
 
-### 1. Understanding the Request
+### 1. Understanding the Request and Gathering Required Information
 
 When the user invokes this skill, determine:
+
+**A. Authentication Method:**
+First, check if the user has a configured profile or needs to provide credentials:
+
+**Option 1: Using a configured profile (simplest)**
+- Ask: "What profile name should I use?" (e.g., "themade", "client1", etc.)
+- Command format: `mcc-gaql --profile <PROFILE_NAME> ...`
+
+**Option 2: Without a profile (requires explicit parameters)**
+If the user doesn't have a profile configured, ask for:
+1. **MCC ID**: "What is the Manager Customer ID (MCC account number)?" (e.g., 1234567890)
+2. **Customer ID**: "What is the Customer ID of the account to analyze?" (e.g., 9876543210)
+3. **User Email**: "What is your Google account email with access to this account?" (e.g., user@example.com)
+- Command format: `mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> ...`
+
+**B. Analysis Parameters:**
 - What time periods to compare (if not specified, suggest: last 7 days vs previous 7 days)
 - Which campaigns to analyze (if not specified, analyze all campaigns)
 - Specific metrics of interest (if not specified, use comprehensive set)
@@ -37,19 +53,30 @@ Common time period formats:
 
 ### 2. Querying Campaign Data with mcc-gaql
 
-The `mcc-gaql` CLI tool retrieves campaign performance data from Google Ads using GAQL (Google Ads Query Language). It can query across MCC child accounts and supports profile-based configuration.
+The `mcc-gaql` CLI tool retrieves campaign performance data from Google Ads using GAQL (Google Ads Query Language). It can query across MCC child accounts and supports two authentication methods.
 
-Run mcc-gaql:
+**Using mcc-gaql with a configured profile:**
 ```bash
 mcc-gaql --profile <PROFILE_NAME> --format csv|json -o <TMP_FILE> <GAQL_QUERY>
 ```
 
+**Using mcc-gaql without a profile (with explicit parameters):**
+```bash
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format csv|json -o <TMP_FILE> <GAQL_QUERY>
+```
+
+**Format selection:**
 - by default, use `--format json` for LLM friendly format
 - for large datasets (segmented by DATE), use `--format csv` to reduce tokens
 
-Example:
+**Example with profile:**
 ```bash
 mcc-gaql --profile themade --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+```
+
+**Example without profile:**
+```bash
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user user@example.com --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 ```
 
 For advanced usage of mcc-gaql, see [mcc_gaql_reference](mcc_gaql_reference.md).
@@ -330,7 +357,9 @@ Provide a structured analysis with:
    - **ALWAYS include impression share metrics** (Search IS, Budget Lost IS, Rank Lost IS)
    - Status indicator (🟢 Good, 🟡 Monitor, 🔴 Issue)
 
-## Example Interaction
+## Example Interactions
+
+### Example 1: User with Configured Profile
 
 **User:** "Analyze campaign performance for the last 7 days compared to the previous 7 days using profile themade"
 
@@ -395,6 +424,46 @@ Structure:
 7. **Appendix with impression share insights** (flag budget vs rank issues)
 
 For common errors and solutions, see [common_errors_reference](common_errors_reference.md).
+
+### Example 2: User WITHOUT Configured Profile
+
+**User:** "Analyze my Google Ads account performance for the last 7 days"
+
+**Step 1: Ask for required authentication information**
+```
+I'll help you analyze your Google Ads performance. Since you don't have a profile configured, I need a few details:
+
+1. What is your MCC (Manager Customer ID)? (e.g., 1234567890)
+2. What is the Customer ID of the account you want to analyze? (e.g., 9876543210)
+3. What is your Google account email with access to this account? (e.g., user@example.com)
+```
+
+**User provides:**
+- MCC ID: 1234567890
+- Customer ID: 9876543210
+- User: john@example.com
+
+**Step 2: Determine date ranges and verify data availability**
+```bash
+# Today is 2025-10-20, so:
+# Current period: 2025-10-12 to 2025-10-18 (last 7 days)
+# Previous period: 2025-10-05 to 2025-10-11 (previous 7 days)
+
+# First, verify access and check latest data
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --format json --list-child-accounts
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --format csv 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 10'
+```
+
+**Step 3: Query both periods and save to files**
+```bash
+# Query current period (ALWAYS include impression share metrics)
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+
+# Query previous period (ALWAYS include impression share metrics)
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+```
+
+**Step 4-6:** Continue with same analysis workflow as Example 1 (Read CSVs, calculate metrics, analyze patterns, present report)
 
 ### Data Quality Checks
 

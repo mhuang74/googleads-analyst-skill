@@ -2,31 +2,56 @@
 
 **Key Features:**
 - Query multiple child accounts under an MCC
-- Profile-based authentication (`--profile` flag)
+- Profile-based authentication (`--profile` flag) OR explicit parameters
 - LLM friendly output format (`--format csv` flag)
 - Export results to CSV/files (`-o` flag)
 - List available child accounts (`--list-child-accounts`)
 - Natural language query conversion (`-n` flag)
 - Grouped and sorted results (`--groupby`, `--sortby`)
 
+**Two Ways to Use mcc-gaql:**
+
+1. **With a configured profile** (recommended for repeated use):
+   ```bash
+   mcc-gaql --profile <PROFILE_NAME> 'SELECT ...'
+   ```
+
+2. **Without a profile** (requires explicit parameters):
+   ```bash
+   mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> 'SELECT ...'
+   ```
+
 **Common Options:**
 ```bash
 --profile <PROFILE>        # Use named profile for authentication
+--mcc <MCC CUSTOMER_ID>    # MCC (Manager) Customer ID (required if no profile)
+-c, --customer-id <ID>     # Query specific customer account (required if no profile)
+--user <USER>              # User email for OAuth2 authentication (required if no profile)
 --format <FORMAT>          # Output format: use `csv` for daily data, otherwise, `json`
 -o <OUTPUT>                # Save output to file (useful for large datasets)
 --list-child-accounts      # List all accessible child accounts
--c <CUSTOMER_ID>           # Query specific customer account
 --keep-going               # Continue on errors across multiple accounts
 ```
+
+**Required Parameters When NOT Using --profile:**
+- `--mcc <MCC_ID>`: The Manager Customer ID (MCC account number, e.g., 1234567890)
+- `--customer-id <CUSTOMER_ID>`: The child account to query (e.g., 9876543210)
+- `--user <EMAIL>`: The Google account email with access to the account (e.g., user@example.com)
 
 #### Step-by-Step Query Process
 
 **Step 1: Verify Access and List Accounts**
 
-Before querying data, verify you have access to the account:
+Before querying data, verify you have access to the account.
 
+**With a configured profile:**
 ```bash
 mcc-gaql --profile <PROFILE_NAME> --list-child-accounts --format json
+```
+
+**Without a profile (requires MCC, customer ID, and user email):**
+```bash
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --list-child-accounts --format json
 ```
 
 This returns a table with:
@@ -37,8 +62,9 @@ This returns a table with:
 
 **Step 2: Test Data Availability**
 
-Check what data exists before running full queries:
+Check what data exists before running full queries.
 
+**With a configured profile:**
 ```bash
 # Check for recent campaign data
 mcc-gaql --profile <PROFILE_NAME> --format json 'SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10'
@@ -48,6 +74,15 @@ mcc-gaql --profile <PROFILE_NAME> --format json 'SELECT campaign.name, metrics.i
 
 # View daily breakdown to find latest data date
 mcc-gaql --profile <PROFILE_NAME> --format csv 'SELECT segments.date, campaign.name, metrics.impressions FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS ORDER BY segments.date DESC LIMIT 20'
+```
+
+**Without a profile:**
+```bash
+# Check for recent campaign data
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format json 'SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10'
+
+# Check for active campaigns with impressions
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format json 'SELECT campaign.name, metrics.impressions, metrics.clicks FROM campaign WHERE campaign.status = "ENABLED" AND segments.date DURING LAST_30_DAYS AND metrics.impressions > 0'
 ```
 
 **Step 3: Determine Appropriate Date Ranges**
@@ -93,12 +128,22 @@ The following metrics may cause queries to return no results when combined:
 
 **Recommended Query Structure:**
 
+**With a configured profile:**
 ```bash
 # Save to file for easier parsing (RECOMMENDED approach)
 mcc-gaql --profile <PROFILE_NAME> --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 
 # For previous period
 mcc-gaql --profile <PROFILE_NAME> --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+```
+
+**Without a profile:**
+```bash
+# Current period
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+
+# Previous period
+mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
 ```
 
 Then read the CSV files to parse and analyze the data.
@@ -184,7 +229,7 @@ avg_cpc = cost_dollars / clicks if clicks > 0 else 0
 
 
 ```
-mcc-gaql 0.12.0
+mcc-gaql 0.12.1
 Michael S. Huang <mhuang74@gmail.com>
 Efficiently run Google Ads GAQL query across one or more child accounts linked to MCC.
 
@@ -202,8 +247,9 @@ OPTIONS:
             Force query to run across all linked child accounts (some may not be accessible)
 
     -c, --customer-id <CUSTOMER_ID>
-            Apply query to a single CustomerID. Or use with `--all-linked-child-accounts` to query
-            all child accounts
+            Apply query to a single account. If no --mcc is specified, this will be used as the MCC
+            (for solo accounts). To query across many accounts, specify a customerids_filename in
+            config file, or query across all child accounts via --all-linked-child-accounts
 
     -f, --field-service
             Query GoogleAdsFieldService to retrieve available fields
@@ -225,6 +271,10 @@ OPTIONS:
     -l, --list-child-accounts
             List all child accounts under MCC
 
+    -m, --mcc <MCC>
+            MCC (Manager) Customer ID for login-customer-id header. Required unless specified in
+            config profile. For solo accounts, can be omitted if --customer-id is provided
+
     -n, --natural-language
             Use natural language prompt instead of GAQL; prompt is converted to GAQL via LLM
 
@@ -237,9 +287,19 @@ OPTIONS:
     -q, --stored-query <STORED_QUERY>
             Load named query from file
 
+        --setup
+            Set up configuration with interactive wizard
+
+        --show-config
+            Display current configuration and exit
+
         --sortby <SORTBY>
             Sort by columns
 
+    -u, --user <USER>
+            User email for OAuth2 authentication (auto-generates token cache)
+
     -V, --version
             Print version information
+
 ```
