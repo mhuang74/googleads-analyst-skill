@@ -312,6 +312,22 @@ Assign priority levels to issues for action planning:
 
 ### 5. Generating the Summary
 
+**Report Filename Format:**
+
+Always save the report with a standardized filename for easy identification:
+
+```
+google_ads_report_{account_name}_{YYYY-MM-DD}.md
+```
+
+Examples:
+- `google_ads_report_themade_2025-11-02.md`
+- `google_ads_report_acme_corp_2025-11-02.md`
+
+**Where:**
+- `{account_name}`: Sanitized account name (lowercase, underscores for spaces, alphanumeric only)
+- `{YYYY-MM-DD}`: Today's date (the date the report was generated)
+
 Provide a structured analysis with:
 
 1. **Executive Summary** (2-3 sentences)
@@ -390,8 +406,11 @@ For each campaign:
 - Spot competitive pressure
 - Recognize landing page problems
 
-**Step 6: Present comprehensive report**
-Structure:
+**Step 6: Generate and save comprehensive report**
+
+Save report as: `google_ads_report_{account_name}_{YYYY-MM-DD}.md`
+
+Report structure:
 1. **Executive Summary** (2-3 sentences on overall performance)
 2. **Detailed Campaign Analysis** (table with metrics, changes, and **impression share data**)
 3. **🚨 HIGH PRIORITY Issues** (with specific diagnoses and actions, **include impression share insights**)
@@ -466,12 +485,13 @@ Immediately flag these critical issues:
 
 ### Reporting Best Practices
 
-1. **Always show date ranges** being compared at the top of your analysis
-2. **Use clear formatting**: Tables for data, bullet points for insights, emojis for status
-3. **Prioritize actionable insights** over raw data dumps
-4. **Lead with conclusions**: Executive summary first, details after
-5. **Provide context**: Include account totals, not just campaign-level data
-6. **Note data limitations**: Small sample sizes, statistical significance concerns
+1. **Save report with standardized filename**: `google_ads_report_{account_name}_{YYYY-MM-DD}.md` for easy identification
+2. **Always show date ranges** being compared at the top of your analysis
+3. **Use clear formatting**: Tables for data, bullet points for insights, emojis for status
+4. **Prioritize actionable insights** over raw data dumps
+5. **Lead with conclusions**: Executive summary first, details after
+6. **Provide context**: Include account totals, not just campaign-level data
+7. **Note data limitations**: Small sample sizes, statistical significance concerns
 
 ### Analysis Best Practices
 
@@ -519,6 +539,7 @@ Immediately flag these critical issues:
 
 ### Final Checklist Before Delivering Analysis
 
+- [ ] **Report saved with proper filename**: `google_ads_report_{account_name}_{YYYY-MM-DD}.md`
 - [ ] Top of report has Google Ads Account Name and Account Number
 - [ ] Date ranges clearly stated and accurate
 - [ ] **All costs converted from micros to dollars correctly** (÷ 1,000,000) - see [derived_metrics_reference.md](derived_metrics_reference.md)
