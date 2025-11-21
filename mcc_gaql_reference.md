@@ -24,19 +24,61 @@
 **Common Options:**
 ```bash
 --profile <PROFILE>        # Use named profile for authentication
---mcc <MCC CUSTOMER_ID>    # MCC (Manager) Customer ID (required if no profile)
+--mcc-id <MCC_ID>          # MCC (Manager) Customer ID (required if no profile)
 -c, --customer-id <ID>     # Query specific customer account (required if no profile)
---user <USER>              # User email for OAuth2 authentication (required if no profile)
+--user-email <EMAIL>       # User email for OAuth2 authentication (required if no profile)
 --format <FORMAT>          # Output format: use `csv` for daily data, otherwise, `json`
 -o <OUTPUT>                # Save output to file (useful for large datasets)
 --list-child-accounts      # List all accessible child accounts
 --keep-going               # Continue on errors across multiple accounts
+--show-fields <RESOURCE>   # Show valid fields for a resource (e.g., campaign, ad_group)
 ```
 
 **Required Parameters When NOT Using --profile:**
-- `--mcc <MCC_ID>`: The Manager Customer ID (MCC account number, e.g., 1234567890)
+- `--mcc-id <MCC_ID>`: The Manager Customer ID (MCC account number, e.g., 1234567890)
 - `--customer-id <CUSTOMER_ID>`: The child account to query (e.g., 9876543210)
-- `--user <EMAIL>`: The Google account email with access to the account (e.g., user@example.com)
+- `--user-email <EMAIL>`: The Google account email with access to the account (e.g., user@example.com)
+
+#### Discovering Valid Fields for GAQL Queries
+
+Before writing GAQL queries, use `--show-fields <resource>` to discover valid field names for any resource type. This ensures you use correct field names and understand available attributes, metrics, and segments.
+
+**Usage:**
+```bash
+# Show all fields available for the campaign resource
+mcc-gaql --profile <PROFILE_NAME> --show-fields campaign
+
+# Show fields for ad_group resource
+mcc-gaql --profile <PROFILE_NAME> --show-fields ad_group
+
+# Show fields for ad_group_ad resource
+mcc-gaql --profile <PROFILE_NAME> --show-fields ad_group_ad
+
+# Show fields for keyword_view resource
+mcc-gaql --profile <PROFILE_NAME> --show-fields keyword_view
+```
+
+**Without a profile:**
+```bash
+mcc-gaql --mcc-id <MCC_ID> --customer-id <CUSTOMER_ID> --user-email <EMAIL> --show-fields campaign
+```
+
+**Common Resources to Query:**
+- `campaign` - Campaign-level data and settings
+- `ad_group` - Ad group settings and targeting
+- `ad_group_ad` - Individual ads and their performance
+- `ad_group_criterion` - Targeting criteria (keywords, audiences, etc.)
+- `keyword_view` - Keyword performance data
+- `search_term_view` - Search terms that triggered ads
+- `geographic_view` - Geographic performance data
+- `customer` - Account-level information
+
+**Field Categories Returned:**
+- **Attributes** - Properties of the resource (e.g., `campaign.name`, `campaign.status`)
+- **Metrics** - Performance data (e.g., `metrics.impressions`, `metrics.clicks`)
+- **Segments** - Dimensions for data breakdown (e.g., `segments.date`, `segments.device`)
+
+**Pro Tip:** When building a new query, first run `--show-fields` to verify exact field names, as Google Ads API field names must match exactly (case-sensitive, with proper prefixes like `campaign.`, `metrics.`, `segments.`).
 
 #### Step-by-Step Query Process
 
@@ -229,7 +271,7 @@ avg_cpc = cost_dollars / clicks if clicks > 0 else 0
 
 
 ```
-mcc-gaql 0.12.1
+mcc-gaql 0.13.0
 Michael S. Huang <mhuang74@gmail.com>
 Efficiently run Google Ads GAQL query across one or more child accounts linked to MCC.
 
@@ -247,17 +289,18 @@ OPTIONS:
             Force query to run across all linked child accounts (some may not be accessible)
 
     -c, --customer-id <CUSTOMER_ID>
-            Apply query to a single account. If no --mcc is specified, this will be used as the MCC
-            (for solo accounts). To query across many accounts, specify a customerids_filename in
-            config file, or query across all child accounts via --all-linked-child-accounts
+            Apply query to a single account. If no --mcc-id is specified, this will be used as the
+            MCC (for solo accounts). To query across many accounts, specify a customerids_filename
+            in config file, or query across all child accounts via --all-linked-child-accounts
+
+        --export-field-metadata
+            Export field metadata summary to stdout
 
     -f, --field-service
             Query GoogleAdsFieldService to retrieve available fields
 
         --format <FORMAT>
-            Output format: table, csv, json
-            
-            [default: table]
+            Output format: table, csv, json (defaults to table, or config profile default if set)
 
         --groupby <GROUPBY>
             Group by columns
@@ -271,7 +314,7 @@ OPTIONS:
     -l, --list-child-accounts
             List all child accounts under MCC
 
-    -m, --mcc <MCC>
+    -m, --mcc-id <MCC_ID>
             MCC (Manager) Customer ID for login-customer-id header. Required unless specified in
             config profile. For solo accounts, can be omitted if --customer-id is provided
 
@@ -287,16 +330,22 @@ OPTIONS:
     -q, --stored-query <STORED_QUERY>
             Load named query from file
 
+        --refresh-field-cache
+            Refresh field metadata cache from Google Ads API
+
         --setup
             Set up configuration with interactive wizard
 
         --show-config
             Display current configuration and exit
 
+        --show-fields <SHOW_FIELDS>
+            Show available fields for a specific resource (e.g., campaign, ad_group)
+
         --sortby <SORTBY>
             Sort by columns
 
-    -u, --user <USER>
+    -u, --user-email <USER_EMAIL>
             User email for OAuth2 authentication (auto-generates token cache)
 
     -V, --version
