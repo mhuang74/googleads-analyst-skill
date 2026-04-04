@@ -1,7 +1,7 @@
 ---
 name: Generate Google Ads Performance Report
 description: Generate performance report for a Google Ads account. Use when asking about how an account or campaign is performing, whether there are performance issues, anomalies, budget pacing issues, or other serious issues requiring manual review.
-allowed-tools: Bash(mcc-gaql:*)
+allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*)
 ---
 
 # Generate Google Ads Performance Report
@@ -12,11 +12,14 @@ You are a Google Ads campaign performance analyst. Your role is to help users an
 ## Core Capabilities
 
 1. **Query Google Ads data** using the `mcc-gaql` CLI tool
-2. **Analyze performance** across multiple time periods
-3. **Identify issues** and anomalies in campaign performance
-4. **Provide contextual insights** considering metric relationships
-5. **Recommend actions** based on data patterns
-6. **Generate professional PDF reports** with proper formatting, tables, and visual hierarchy
+2. **Generate dynamic investigation queries** using `mcc-gaql-gen` for deep root cause analysis
+3. **Analyze performance** across multiple time periods
+4. **Identify issues** and anomalies in campaign performance
+5. **Drill down dynamically** from campaign → ad group → keyword/ad level based on symptoms
+6. **Correlate performance changes** with user-initiated changes via change_event analysis
+7. **Provide contextual insights** considering metric relationships
+8. **Recommend specific actions** with calculated impact estimates and supporting evidence
+9. **Generate professional PDF reports** with proper formatting, tables, and visual hierarchy
 
 ## Workflow
 
@@ -311,6 +314,317 @@ Assign priority levels to issues for action planning:
 5. Successfully scaling spend with maintained ROAS
 
 
+### 4. Dynamic Investigation Mode (Advanced Root Cause Analysis)
+
+**When to Use:** When significant performance issues are detected in the baseline analysis (Step 3), use dynamic GAQL generation to drill deeper into root causes and gather specific evidence for recommendations.
+
+**Purpose:** 
+- Move beyond surface-level analysis to identify **specific** root causes
+- Drill down from campaign → ad group → keyword/ad level
+- Correlate performance changes with user-initiated changes (change_event)
+- Generate data-driven recommendations with calculated impact estimates
+
+**Tools:**
+- `mcc-gaql-gen generate` - Generate investigation queries from natural language
+- `mcc-gaql --validate` - Validate generated queries before execution
+- `mcc-gaql` - Execute validated queries
+
+#### When NOT to Use Dynamic Investigation
+
+Skip deep investigation for:
+- ✅ Minor fluctuations (<10% on metrics) with clear explanations
+- ✅ Expected seasonal patterns
+- ✅ Small sample sizes (<30 clicks) where deeper analysis won't be conclusive
+- ✅ Low-priority issues with minimal spend impact (<$50/week)
+
+**DO use Dynamic Investigation for:**
+- 🔴 High priority issues (cost spike >20%, conversion drop >30%, zero conversions with >$100 spend)
+- 🟡 Medium priority issues affecting significant spend (>$200/week impact)
+- ❓ Issues without obvious causes from baseline analysis
+- 📊 Complex patterns requiring drill-down (multi-metric anomalies)
+
+#### Investigation Workflow
+
+**Phase 1: Symptom Classification (Already Done in Step 3)**
+
+From your baseline campaign analysis, you've already identified symptoms:
+- Conversion rate decline
+- Cost increase without conversion improvement  
+- Impression share loss
+- CTR decline
+- Zero/low conversions with spend
+
+**Phase 2: Generate Investigation Queries**
+
+For each prioritized symptom, use `mcc-gaql-gen` to create targeted drill-down queries.
+
+**Example: Investigating Conversion Rate Decline**
+
+```bash
+# Step 1: Generate ad group breakdown query
+mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' with clicks, conversions, conversion rate, cost for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
+
+# Step 2: The tool will output a GAQL query like:
+# SELECT campaign.name, ad_group.id, ad_group.name, metrics.clicks, 
+#        metrics.conversions, metrics.cost_micros
+# FROM ad_group
+# WHERE campaign.name = 'Brand Search'
+#   AND segments.date >= '2025-10-12' AND segments.date <= '2025-10-18'
+# ORDER BY metrics.cost_micros DESC
+
+# Step 3: If validation passes, execute it
+mcc-gaql --profile <PROFILE> --format json -o /tmp/ad_group_breakdown.json "<GENERATED_QUERY>"
+
+# Step 4: Analyze results and decide if further drill-down needed
+# If specific ad groups are underperforming, drill into keywords:
+
+mcc-gaql-gen generate "Show top 20 keywords by cost for ad group 'Premium Products' in campaign 'Brand Search' with clicks, conversions, average CPC for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
+```
+
+**Validation and Fallback Strategy:**
+
+```bash
+# Always validate before executing
+mcc-gaql --profile <PROFILE> --validate "$GENERATED_QUERY"
+
+# If validation fails:
+# 1. Check the error message for field compatibility issues
+# 2. Use mcc-gaql --show-fields <resource> to find correct fields
+# 3. Refine the prompt and regenerate, OR
+# 4. Use manual GAQL pattern from mcc_gaql_reference.md
+```
+
+**Phase 3: Change Event Correlation**
+
+For each anomaly, query change_event to see if user changes caused the issue:
+
+```bash
+# Generate change history query
+mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days with change type, user email, and changed fields" --validate
+
+# Typical output query:
+# SELECT change_event.change_date_time, change_event.change_resource_type,
+#        change_event.change_resource_name, change_event.user_email,
+#        campaign.name
+# FROM change_event
+# WHERE campaign.name = 'Brand Search'
+#   AND change_event.change_date_time >= '2025-09-12'
+# ORDER BY change_event.change_date_time DESC
+
+# Execute to find correlating changes
+mcc-gaql --profile <PROFILE> --format json -o /tmp/change_events.json "<GENERATED_QUERY>"
+```
+
+**Correlation Analysis:**
+
+After retrieving change events, calculate correlation scores:
+
+1. **Temporal Proximity**: How close was the change to when the anomaly started?
+   - Same day: 30 points
+   - 1-2 days: 25 points
+   - 3-5 days: 15 points
+   - 6-7 days: 10 points
+
+2. **Change-Symptom Match**: Does the change type align with the symptom?
+   - Budget change + cost change: 30 points
+   - Bid change + CPC change: 30 points
+   - Ad change + CTR change: 30 points
+   - Targeting change + impression change: 30 points
+
+3. **Magnitude Alignment**: Does change magnitude match symptom magnitude?
+   - Within 10%: 20 points
+   - Within 25%: 10 points
+
+4. **Pattern Scope**: Single campaign or account-wide?
+   - Single campaign affected: 20 points (likely user change)
+   - All campaigns affected: 5 points (likely market change)
+
+**Correlation Score Interpretation:**
+- **80-100**: Very likely cause (>90% confidence)
+- **60-79**: Probable cause (75-90% confidence)
+- **40-59**: Possible cause (50-75% confidence)
+- **<40**: Unlikely or coincidental
+
+**Phase 4: Evidence Synthesis**
+
+Combine findings from drill-down queries and change correlation:
+
+```
+Root Cause Analysis for Campaign "Brand Search":
+- Conversion rate dropped 35% starting 2025-10-15
+
+Likely Cause: User Change (92% confidence)
+  - Budget reduced from $100 to $50 on 2025-10-14 (change_event)
+  - Correlates with impression drop of 45%
+  - Ad group breakdown shows all groups affected proportionally
+  - Budget-lost IS increased from 5% to 58%
+  
+Alternative: Market Change (8% confidence)
+  - No competitive impression share gain detected
+  - No seasonal pattern in year-over-year comparison
+```
+
+**Phase 5: Formulate Specific Recommendations**
+
+Use the evidence to create **specific, data-driven recommendations** (not generic advice).
+
+See [action_templates_reference.md](action_templates_reference.md) for standardized recommendation templates.
+
+**Example Specific Recommendation:**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ 🚨 HIGH PRIORITY RECOMMENDATION #1: Increase Budget            │
+├────────────────────────────────────────────────────────────────┤
+│ Action: Increase daily budget for "Brand Search"              │
+│ Campaign: Brand Search                                         │
+│ Current State: $50/day budget, 58% budget-lost IS             │
+│ Recommended State: $90/day budget                              │
+│ Expected Impact:                                               │
+│   - Capture ~50% more impressions (est. 4,200/week)           │
+│   - Estimated 12-15 additional conversions per week           │
+│   - Projected additional revenue: $750/week                   │
+│ Evidence:                                                      │
+│   - Budget-lost IS: 58% (missing over half of available imp.) │
+│   - Rank-lost IS: only 8% (ad quality is not the issue)      │
+│   - Historical ROAS: 4.2x (campaign is highly profitable)    │
+│   - Budget reduced on 2025-10-14 (change_event confirmed)    │
+│   - Prior to reduction: $100/day with 2% budget-lost IS      │
+│ Confidence: High (92%)                                         │
+│ Follow-up Query:                                               │
+│   SELECT segments.date,                                        │
+│          metrics.search_budget_lost_impression_share,          │
+│          metrics.impressions, metrics.conversions              │
+│   FROM campaign                                                │
+│   WHERE campaign.name = "Brand Search"                         │
+│     AND segments.date DURING LAST_7_DAYS                       │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### Investigation Patterns Reference
+
+For symptom-specific investigation strategies, query patterns, and expected findings, see:
+
+**[investigation_patterns_reference.md](investigation_patterns_reference.md)**
+
+This reference provides:
+- Symptom-to-query mappings for each issue type
+- Prompt patterns for mcc-gaql-gen
+- Expected GAQL outputs
+- Analysis frameworks for results
+- Multi-level drill-down strategies
+- Validation and fallback procedures
+
+**[change_correlation_reference.md](change_correlation_reference.md)**
+
+This reference provides:
+- Change event query patterns
+- Correlation scoring methodology
+- Change type to symptom matching
+- Parsing change event JSON data
+- Seasonal vs user change differentiation
+- Root cause analysis output format
+
+**[action_templates_reference.md](action_templates_reference.md)**
+
+This reference provides:
+- Standardized recommendation templates
+- Impact calculation formulas
+- Confidence scoring guidelines
+- Follow-up query patterns
+- Specific templates for:
+  - Budget increases
+  - Pausing underperformers
+  - Creative refresh
+  - Negative keywords
+  - Location exclusions
+  - Quality Score improvements
+  - PMax consolidation
+
+#### Investigation Best Practices
+
+1. **Start broad, then narrow**: Campaign → Ad Group → Keyword/Ad
+2. **Always validate before executing**: Use `--validate` flag
+3. **Include date ranges explicitly**: Don't rely on defaults
+4. **Use --use-query-cookbook flag**: Improves generation quality
+5. **Calculate correlation scores**: Quantify confidence in root causes
+6. **Iterate based on findings**: Each query informs the next
+7. **Stop when confident**: Don't over-investigate clear issues
+8. **Document evidence**: Show data supporting each recommendation
+
+#### Common Investigation Patterns
+
+**Budget Constraint Issue:**
+```
+Baseline: High budget-lost IS (>20%)
+↓
+Drill-down: Hourly performance to see when budget depletes
+↓
+Evidence: Budget exhausted by 2pm daily
+↓
+Recommendation: Increase budget by X% (calculated from budget-lost IS)
+```
+
+**Ad Fatigue:**
+```
+Baseline: CTR declined >20%, impressions stable
+↓
+Drill-down: Ad performance breakdown
+↓
+Evidence: Same ads running 60+ days, declining CTR trend
+↓
+Change correlation: No changes detected (not user-caused)
+↓
+Recommendation: Refresh creative with specific suggestions
+```
+
+**Targeting Expansion Gone Wrong:**
+```
+Baseline: Cost +45%, conversions flat
+↓
+Change correlation: New ad group created on [date]
+↓
+Drill-down: Ad group breakdown shows new group has 0 conversions
+↓
+Drill-down: Keywords in new ad group (broad match, low intent)
+↓
+Recommendation: Pause ad group, add negative keywords
+```
+
+**PMax Cannibalization:**
+```
+Baseline: One PMax campaign stopped getting clicks on specific date
+↓
+Drill-down: Daily performance for last 60 days (inverse correlation)
+↓
+Change correlation: Second PMax launched on same date
+↓
+Drill-down: Check Final URL Expansion settings (mismatch detected)
+↓
+Evidence: Both campaigns target same domain, expansion enabled on one
+↓
+Recommendation: Consolidate campaigns or align expansion settings
+```
+
+#### Depth Selection Guidelines
+
+**Quick Investigation (1-2 queries):**
+- Clear symptoms with obvious causes (high budget-lost IS = increase budget)
+- Low spend impact (<$100/week)
+- Small sample sizes limiting deeper analysis
+
+**Standard Investigation (3-4 queries):**
+- Moderate complexity issues
+- Medium spend impact ($100-500/week)
+- Multiple potential causes
+
+**Deep Investigation (5+ queries):**
+- Critical issues (>$500/week wasted spend)
+- Complex multi-metric anomalies
+- No obvious cause from baseline analysis
+- User explicitly requests thorough investigation
+
+
 ### 5. Generating the Report (PDF is Primary Output)
 
 **IMPORTANT: PDF is the primary output format.** Generate a professionally formatted PDF report that is easy to read and suitable for client presentation.
@@ -430,6 +744,35 @@ For each campaign:
 - Identify conversion tracking issues
 - Spot competitive pressure
 - Recognize landing page problems
+
+**Step 5b (Optional): Dynamic Investigation for Complex Issues**
+
+If HIGH or MEDIUM priority issues are detected without clear root causes, use Dynamic Investigation Mode:
+
+```bash
+# Example: Campaign with conversion rate drop, unclear cause
+# Generate ad group breakdown to drill down
+mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' with clicks, conversions, cost for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
+
+# Validate and execute the generated query
+mcc-gaql --profile themade --validate "<GENERATED_QUERY>"
+mcc-gaql --profile themade --format json -o /tmp/ad_group_drill.json "<GENERATED_QUERY>"
+
+# Check for user-initiated changes that might explain the issue
+mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days" --validate
+mcc-gaql --profile themade --format json -o /tmp/changes.json "<GENERATED_QUERY>"
+
+# Analyze correlation between changes and performance anomaly
+# Calculate correlation score (see change_correlation_reference.md)
+```
+
+**When to use Dynamic Investigation:**
+- 🔴 High priority issues (>$200/week impact)
+- ❓ Issues without obvious causes from baseline analysis
+- 📊 Complex multi-metric anomalies
+- Skip for: minor fluctuations, small sample sizes, obvious causes
+
+See [Section 4: Dynamic Investigation Mode](#4-dynamic-investigation-mode-advanced-root-cause-analysis) for full workflow.
 
 **Step 6: Generate and save comprehensive report**
 
@@ -577,7 +920,11 @@ Immediately flag these critical issues:
 - [ ] **Impression share analysis performed** - budget vs rank issues identified
 - [ ] Campaign health status assigned (🟢 🟡 🔴)
 - [ ] Issues prioritized (HIGH, MEDIUM, LOW)
-- [ ] Specific actions recommended for each issue **based on impression share data**
+- [ ] **Dynamic investigation performed for HIGH/MEDIUM priority issues** (when appropriate)
+- [ ] **Root cause analysis with correlation scores** (for investigated issues)
+- [ ] **Change event correlation checked** for anomalies (user vs market changes identified)
+- [ ] Specific actions recommended for each issue **with calculated impact estimates**
+- [ ] **Follow-up queries included** for monitoring recommendations
 - [ ] Account-level totals calculated and presented
 - [ ] Sample size concerns noted where relevant
 - [ ] Next steps with timeline provided
