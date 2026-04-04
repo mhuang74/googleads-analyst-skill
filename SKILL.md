@@ -73,15 +73,57 @@ mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> --format
 - by default, use `--format json` for LLM friendly format
 - for large datasets (segmented by DATE), use `--format csv` to reduce tokens
 
-**Example with profile:**
+**⚠️ CRITICAL: Always Validate GAQL Before Executing**
+
+**ALWAYS validate queries before execution** to catch field errors, typos, and incompatibilities early:
+
 ```bash
-mcc-gaql --profile themade --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+# Step 1: VALIDATE first (required)
+mcc-gaql --profile <PROFILE_NAME> --validate '<GAQL_QUERY>'
+
+# Step 2: If validation passes, THEN execute
+mcc-gaql --profile <PROFILE_NAME> --format csv -o <OUTPUT_FILE> '<GAQL_QUERY>'
 ```
 
-**Example without profile:**
+**Why validation is critical:**
+- Catches hallucinated or non-existent fields immediately
+- Identifies field compatibility issues before execution
+- Prevents wasted time on queries that will fail
+- Validates GAQL syntax and structure
+
+**If validation fails:**
+1. Check the error message for specific field issues
+2. Use `mcc-gaql --show-fields <resource>` to find correct field names
+3. Fix the query and re-validate
+4. Only execute after successful validation
+
+**Example with profile (with validation):**
 ```bash
-mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user user@example.com --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+# STEP 1: Validate the query first
+QUERY='SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+
+mcc-gaql --profile themade --validate "$QUERY"
+
+# STEP 2: Only if validation succeeds, execute the query
+mcc-gaql --profile themade --format csv -o /tmp/current_period.csv "$QUERY"
 ```
+
+**Example without profile (with validation):**
+```bash
+# STEP 1: Validate the query first
+QUERY='SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user user@example.com --validate "$QUERY"
+
+# STEP 2: Only if validation succeeds, execute the query
+mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user user@example.com --format csv -o /tmp/current_period.csv "$QUERY"
+```
+
+**Validation Best Practices:**
+- Store complex queries in variables for reuse between validation and execution
+- Never skip validation, even for "simple" queries
+- If you get a validation error, don't guess - use `--show-fields` to verify
+- Validation requires authentication but doesn't consume quota
 
 For advanced usage of mcc-gaql, see [mcc_gaql_reference](mcc_gaql_reference.md).
 
@@ -358,13 +400,23 @@ From your baseline campaign analysis, you've already identified symptoms:
 
 For each prioritized symptom, use `mcc-gaql-gen` to create targeted drill-down queries.
 
+**⚠️ CRITICAL: 3-Step Process for Every Query**
+
+1. **Generate** with mcc-gaql-gen
+2. **Validate** with mcc-gaql --validate (REQUIRED)
+3. **Execute** with mcc-gaql (only if validation passes)
+
+**Never skip validation** - it catches hallucinated fields, typos, and incompatibilities immediately.
+
 **Example: Investigating Conversion Rate Decline**
 
 ```bash
-# Step 1: Generate ad group breakdown query
-mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' with clicks, conversions, conversion rate, cost for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
+# STEP 1: Generate the query using natural language
+PROMPT="Show ad group performance for campaign 'Brand Search' with clicks, conversions, conversion rate, cost for 2025-10-12 to 2025-10-18"
 
-# Step 2: The tool will output a GAQL query like:
+GENERATED_QUERY=$(mcc-gaql-gen generate "$PROMPT" --use-query-cookbook)
+
+# The tool outputs something like:
 # SELECT campaign.name, ad_group.id, ad_group.name, metrics.clicks, 
 #        metrics.conversions, metrics.cost_micros
 # FROM ad_group
@@ -372,27 +424,84 @@ mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' wit
 #   AND segments.date >= '2025-10-12' AND segments.date <= '2025-10-18'
 # ORDER BY metrics.cost_micros DESC
 
-# Step 3: If validation passes, execute it
-mcc-gaql --profile <PROFILE> --format json -o /tmp/ad_group_breakdown.json "<GENERATED_QUERY>"
+# STEP 2: VALIDATE before executing (REQUIRED - catches errors early)
+mcc-gaql --profile <PROFILE> --validate "$GENERATED_QUERY"
 
-# Step 4: Analyze results and decide if further drill-down needed
-# If specific ad groups are underperforming, drill into keywords:
+# Check validation result:
+if [ $? -eq 0 ]; then
+  echo "✅ Query validated successfully"
+  
+  # STEP 3: Execute only after successful validation
+  mcc-gaql --profile <PROFILE> --format json -o /tmp/ad_group_breakdown.json "$GENERATED_QUERY"
+else
+  echo "❌ Validation failed - fix query before executing"
+  # See fallback strategy below
+fi
 
-mcc-gaql-gen generate "Show top 20 keywords by cost for ad group 'Premium Products' in campaign 'Brand Search' with clicks, conversions, average CPC for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
+# STEP 4: Analyze results and decide if further drill-down needed
+# If specific ad groups are underperforming, drill into keywords (repeat 3-step process):
+
+KEYWORD_PROMPT="Show top 20 keywords by cost for ad group 'Premium Products' in campaign 'Brand Search' with clicks, conversions, average CPC for 2025-10-12 to 2025-10-18"
+
+KEYWORD_QUERY=$(mcc-gaql-gen generate "$KEYWORD_PROMPT" --use-query-cookbook)
+
+# ALWAYS validate generated queries before execution
+mcc-gaql --profile <PROFILE> --validate "$KEYWORD_QUERY"
+
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile <PROFILE> --format json -o /tmp/keyword_breakdown.json "$KEYWORD_QUERY"
+fi
 ```
 
 **Validation and Fallback Strategy:**
 
 ```bash
-# Always validate before executing
+# REQUIRED: Always validate before executing
 mcc-gaql --profile <PROFILE> --validate "$GENERATED_QUERY"
 
-# If validation fails:
-# 1. Check the error message for field compatibility issues
-# 2. Use mcc-gaql --show-fields <resource> to find correct fields
-# 3. Refine the prompt and regenerate, OR
-# 4. Use manual GAQL pattern from mcc_gaql_reference.md
+# If validation PASSES (exit code 0):
+#   ✅ Proceed to execute the query
+#   ✅ Query is syntactically correct and fields are valid
+
+# If validation FAILS (exit code non-zero):
+#   ❌ DO NOT execute the query
+#   ❌ Fix the issue first using this fallback strategy:
+
+# Fallback Step 1: Check the error message
+#   - Read the validation error output
+#   - Identifies which field caused the problem
+#   - Example: "Field 'metrics.video_views' does not exist"
+
+# Fallback Step 2: Discover correct field names
+mcc-gaql --show-fields <RESOURCE_NAME>
+#   - Example: mcc-gaql --show-fields campaign
+#   - Lists all valid fields for that resource
+#   - Find the correct field name (e.g., metrics.video_trueview_views)
+
+# Fallback Step 3: Fix and regenerate
+#   Option A: Refine the prompt with more specific field names
+#     mcc-gaql-gen generate "Show campaigns with video_trueview_views (not video_views)" --use-query-cookbook
+#   
+#   Option B: Manually fix the generated query
+#     - Replace the incorrect field with the correct one
+#     - Re-validate the corrected query
+#   
+#   Option C: Use manual GAQL pattern from mcc_gaql_reference.md
+#     - Fall back to hand-written GAQL if generation repeatedly fails
+
+# Fallback Step 4: Re-validate after fixing
+mcc-gaql --profile <PROFILE> --validate "$CORRECTED_QUERY"
+
+# Only execute after successful validation
 ```
+
+**Why Validation is Critical:**
+
+- ✅ **Catches hallucinated fields** - LLMs may generate non-existent field names (e.g., `metrics.video_views` instead of `metrics.video_trueview_views`)
+- ✅ **Detects field incompatibilities** - Some fields can't be selected together
+- ✅ **Validates syntax** - Catches GAQL syntax errors before execution
+- ✅ **Saves time** - Fix errors immediately instead of debugging failed queries
+- ✅ **No quota cost** - Validation doesn't count against API quota
 
 **Phase 3: Change Event Correlation**
 
@@ -711,11 +820,22 @@ mcc-gaql --profile themade --format csv 'SELECT segments.date, campaign.name, me
 
 **Step 2: Query both periods and save to files**
 ```bash
-# Query current period (ALWAYS include impression share metrics)
-mcc-gaql --profile themade --format csv -o /tmp/current_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
+# Define the query (ALWAYS include impression share metrics)
+CURRENT_QUERY='SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-12" AND segments.date <= "2025-10-18" AND campaign.status = "ENABLED"'
 
-# Query previous period (ALWAYS include impression share metrics)
-mcc-gaql --profile themade --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+PREVIOUS_QUERY='SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
+
+# VALIDATE queries before execution (REQUIRED)
+echo "Validating current period query..."
+mcc-gaql --profile themade --validate "$CURRENT_QUERY"
+
+echo "Validating previous period query..."
+mcc-gaql --profile themade --validate "$PREVIOUS_QUERY"
+
+# Only execute if validation passed
+echo "Executing queries..."
+mcc-gaql --profile themade --format csv -o /tmp/current_period.csv "$CURRENT_QUERY"
+mcc-gaql --profile themade --format csv -o /tmp/previous_period.csv "$PREVIOUS_QUERY"
 ```
 
 **Step 3: Read and parse the CSV files**
@@ -751,18 +871,32 @@ If HIGH or MEDIUM priority issues are detected without clear root causes, use Dy
 
 ```bash
 # Example: Campaign with conversion rate drop, unclear cause
-# Generate ad group breakdown to drill down
-mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' with clicks, conversions, cost for 2025-10-12 to 2025-10-18" --use-query-cookbook --validate
 
-# Validate and execute the generated query
-mcc-gaql --profile themade --validate "<GENERATED_QUERY>"
-mcc-gaql --profile themade --format json -o /tmp/ad_group_drill.json "<GENERATED_QUERY>"
+# INVESTIGATION 1: Generate ad group breakdown to drill down
+# Step 1: Generate query
+AD_GROUP_QUERY=$(mcc-gaql-gen generate "Show ad group performance for campaign 'Brand Search' with clicks, conversions, cost for 2025-10-12 to 2025-10-18" --use-query-cookbook)
 
-# Check for user-initiated changes that might explain the issue
-mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days" --validate
-mcc-gaql --profile themade --format json -o /tmp/changes.json "<GENERATED_QUERY>"
+# Step 2: VALIDATE before executing (REQUIRED)
+mcc-gaql --profile themade --validate "$AD_GROUP_QUERY"
 
-# Analyze correlation between changes and performance anomaly
+# Step 3: Execute only if validation passed
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile themade --format json -o /tmp/ad_group_drill.json "$AD_GROUP_QUERY"
+fi
+
+# INVESTIGATION 2: Check for user-initiated changes that might explain the issue
+# Step 1: Generate change event query
+CHANGE_QUERY=$(mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days with change type and user")
+
+# Step 2: VALIDATE before executing (REQUIRED)
+mcc-gaql --profile themade --validate "$CHANGE_QUERY"
+
+# Step 3: Execute only if validation passed
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile themade --format json -o /tmp/changes.json "$CHANGE_QUERY"
+fi
+
+# ANALYSIS: Analyze correlation between changes and performance anomaly
 # Calculate correlation score (see change_correlation_reference.md)
 ```
 
@@ -853,6 +987,51 @@ Immediately flag these critical issues:
 
 ## Best Practices for Analysis
 
+### Query Best Practices
+
+**⚠️ CRITICAL: Always Validate Before Executing**
+
+1. **NEVER skip validation** - Always run `mcc-gaql --validate` before executing any GAQL query
+   - Manual queries: Validate before first execution
+   - Generated queries: Validate every mcc-gaql-gen output
+   - Modified queries: Re-validate after any changes
+
+2. **Use the 3-step workflow** for every query:
+   ```bash
+   # Step 1: Define/Generate query
+   QUERY='SELECT ...'
+   
+   # Step 2: VALIDATE (required)
+   mcc-gaql --profile <PROFILE> --validate "$QUERY"
+   
+   # Step 3: Execute only if validation passes
+   if [ $? -eq 0 ]; then
+     mcc-gaql --profile <PROFILE> --format csv -o output.csv "$QUERY"
+   fi
+   ```
+
+3. **When validation fails**:
+   - Read the error message carefully - it tells you exactly what's wrong
+   - Use `mcc-gaql --show-fields <resource>` to find correct field names
+   - Don't guess or try random variations - verify field names
+   - Check [GAQL_FIELD_VALIDATION_REPORT.md](GAQL_FIELD_VALIDATION_REPORT.md) for validated queries
+
+4. **Common validation errors and fixes**:
+   - `Field 'metrics.video_views' does not exist` → Use `metrics.video_trueview_views`
+   - `Field incompatibility` → Check which fields can be selected together
+   - `Invalid WHERE clause` → Verify date format, enum values, filter syntax
+
+5. **Store queries in variables** for reuse between validation and execution
+   - Makes code cleaner and ensures you validate the same query you execute
+   - Easier to debug and modify
+
+6. **Validation benefits**:
+   - ✅ Catches hallucinated/non-existent fields immediately
+   - ✅ Detects field compatibility issues before execution
+   - ✅ Validates GAQL syntax and structure
+   - ✅ Saves time debugging failed queries
+   - ✅ No API quota cost for validation
+
 ### Reporting Best Practices
 
 1. **Generate PDF report directly with standardized filename**: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf` for easy identification
@@ -910,6 +1089,14 @@ Immediately flag these critical issues:
 7. **Clearly identify Account Name**. Include Google Ads account name and account number at the top of the report.
 
 ### Final Checklist Before Delivering Analysis
+
+**Query Execution Quality:**
+- [ ] **ALL GAQL queries validated** using `mcc-gaql --validate` before execution
+- [ ] No queries executed without successful validation (exit code 0)
+- [ ] Validation errors fixed before execution (if any occurred)
+- [ ] For mcc-gaql-gen queries: validated every generated query
+- [ ] Used `--show-fields` to verify field names when validation failed
+- [ ] No hallucinated fields in executed queries (e.g., video_views vs video_trueview_views)
 
 **Content Quality:**
 - [ ] Top of report has Google Ads Account Name and Account Number
