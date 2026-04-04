@@ -39,7 +39,8 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
 6. **Correlate performance changes** with user-initiated changes via change_event analysis
 7. **Provide contextual insights** considering metric relationships
 8. **Recommend specific actions** with calculated impact estimates and supporting evidence
-9. **Generate professional PDF reports** with proper formatting, tables, and visual hierarchy
+9. **Present findings interactively** and engage in Q&A with the user
+10. **Generate professional PDF reports** (when requested) with proper formatting, tables, and visual hierarchy
 
 ## Workflow
 
@@ -376,9 +377,15 @@ Assign priority levels to issues for action planning:
 5. Successfully scaling spend with maintained ROAS
 
 
-### 4. Dynamic Investigation Mode (Advanced Root Cause Analysis)
+### 4. Dynamic Investigation Mode (REQUIRED When Issues Detected)
 
-**When to Use:** When significant performance issues are detected in the baseline analysis (Step 3), use dynamic GAQL generation to drill deeper into root causes and gather specific evidence for recommendations.
+**This step is MANDATORY when HIGH or MEDIUM priority issues are found in the baseline analysis (Step 3).** Use dynamic GAQL generation to drill deeper into root causes and gather specific evidence for recommendations.
+
+**Skip this step ONLY when:**
+- All issues are LOW priority or informational
+- Minor fluctuations (<10% on metrics) with clear explanations
+- Expected seasonal patterns
+- Small sample sizes (<30 clicks) where deeper analysis won't be conclusive
 
 **🎯 PRIMARY OBJECTIVES (MANDATORY):**
 
@@ -808,9 +815,60 @@ Recommendation: Consolidate campaigns or align expansion settings
 - User explicitly requests thorough investigation
 
 
-### 5. Generating the Report (PDF is Primary Output)
+### 5. Present Findings and Offer PDF Report
 
-**IMPORTANT: PDF is the primary output format.** Generate a professionally formatted PDF report that is easy to read and suitable for client presentation.
+**IMPORTANT: Present analysis findings interactively FIRST, then offer PDF as an option.**
+
+#### Step 1: Present Findings in Conversation
+
+After completing baseline analysis and dynamic investigation, present your findings directly in the conversation using this structure:
+
+**Executive Summary** (2-3 sentences)
+- Overall performance trend and most significant changes
+- Critical actions needed
+
+**Critical Issues** (🔴 HIGH priority)
+- Issue description with root cause evidence
+- Specific recommendation with expected impact
+- Correlation score if user changes detected
+
+**Issues to Monitor** (🟡 MEDIUM priority)
+- Issue description and trend
+- Recommended action
+
+**Positive Trends** (🟢 Successes)
+- What's working well
+- Opportunities to scale
+
+**Key Recommendations** (prioritized list)
+- Specific, actionable items with expected impact
+
+#### Step 2: Interactive Q&A
+
+After presenting findings, **pause and invite questions:**
+
+```
+"Do you have questions about any of these findings?"
+"Would you like me to investigate any specific campaign or metric further?"
+```
+
+Engage in Q&A until the user indicates they're satisfied.
+
+#### Step 3: Offer PDF (Optional)
+
+After Q&A concludes, mention PDF availability:
+
+```
+"Let me know if you'd like a PDF version of this analysis."
+```
+
+**Only generate the PDF if the user explicitly requests it.**
+
+---
+
+### 6. Generating PDF Report (When Requested)
+
+**This section only applies if the user requests a PDF.** Generate a professionally formatted PDF report that is easy to read and suitable for client presentation.
 
 **Report Filename Format:**
 
@@ -939,9 +997,9 @@ For each campaign:
 - Spot competitive pressure
 - Recognize landing page problems
 
-**Step 5b (Optional): Dynamic Investigation for Complex Issues**
+**Step 5b: Dynamic Investigation (REQUIRED when issues detected)**
 
-If HIGH or MEDIUM priority issues are detected without clear root causes, use Dynamic Investigation Mode:
+**This step is MANDATORY when HIGH or MEDIUM priority issues are found.** Use Dynamic Investigation Mode to drill down and gather evidence:
 
 ```bash
 # Example: Campaign with conversion rate drop, unclear cause
@@ -974,19 +1032,46 @@ fi
 # Calculate correlation score (see change_correlation_reference.md)
 ```
 
-**When to use Dynamic Investigation:**
-- 🔴 High priority issues (>$200/week impact)
-- ❓ Issues without obvious causes from baseline analysis
-- 📊 Complex multi-metric anomalies
-- Skip for: minor fluctuations, small sample sizes, obvious causes
+**Skip Dynamic Investigation ONLY for:**
+- Minor fluctuations (<10% on metrics) with clear explanations
+- Small sample sizes (<30 clicks) where deeper analysis won't be conclusive
+- Low-priority issues with minimal spend impact (<$50/week)
+- Obvious causes already identified in baseline analysis
 
-See [Section 4: Dynamic Investigation Mode](#4-dynamic-investigation-mode-advanced-root-cause-analysis) for full workflow.
+See [Section 4: Dynamic Investigation Mode](#4-dynamic-investigation-mode-required-when-issues-detected) for full workflow.
 
-**Step 6: Generate and save comprehensive report**
+**Step 5c: Present Findings (Interactive Q&A)**
 
-Save report as: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
+**DO NOT generate a PDF yet.** First, present your analysis findings directly in the conversation:
 
-Report structure:
+1. **Executive Summary** (2-3 sentences on overall performance)
+2. **Critical Issues Found** (🔴 HIGH priority items with root causes and evidence)
+3. **Issues to Monitor** (🟡 MEDIUM priority items)
+4. **Key Recommendations** (specific actions with expected impact)
+5. **Positive Trends** (🟢 what's working well)
+
+After presenting findings, **pause and invite user questions:**
+
+```
+"Do you have questions about any of these findings?"
+"Would you like me to investigate any specific campaign or metric further?"
+```
+
+**Engage in Q&A** until the user indicates they're satisfied or have no more questions.
+
+**Step 6: Offer PDF Report (Optional)**
+
+After the Q&A concludes, mention PDF availability:
+
+```
+"Let me know if you'd like a PDF version of this analysis."
+```
+
+**Only generate the PDF if the user explicitly requests it.**
+
+If requested, save report as: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
+
+Report structure (when requested):
 1. **Executive Summary** (2-3 sentences on overall performance)
 2. **Detailed Campaign Analysis** (professionally formatted table with metrics, changes, and **impression share data**)
 3. **🚨 HIGH PRIORITY Issues** (with specific diagnoses and actions, **include impression share insights**)
@@ -1037,7 +1122,12 @@ mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --for
 mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --format csv -o /tmp/previous_period.csv 'SELECT campaign.id, campaign.name, campaign.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.conversions, metrics.conversions_value, metrics.search_impression_share, metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share FROM campaign WHERE segments.date >= "2025-10-05" AND segments.date <= "2025-10-11" AND campaign.status = "ENABLED"'
 ```
 
-**Step 4-6:** Continue with same analysis workflow as Example 1 (Read CSVs, calculate metrics, analyze patterns, generate PDF report)
+**Step 4-6:** Continue with same analysis workflow as Example 1:
+- Read CSVs and calculate metrics
+- Analyze patterns and identify issues
+- Run Dynamic Investigation if HIGH/MEDIUM issues found
+- Present findings interactively and engage in Q&A
+- Offer PDF report if user wants one
 
 ### Data Quality Checks
 
@@ -1224,9 +1314,9 @@ Immediately flag these critical issues:
 - [ ] Tables don't break awkwardly across pages
 - [ ] PDF is client-ready and professional looking
 
-### 6. Generating PDF Report (Primary Output)
+### 6. Generating PDF Report (When Requested)
 
-**PDF is the primary deliverable.** Generate a professionally formatted PDF report directly using HTML with CSS styling.
+**Only generate PDF when the user requests it.** When requested, generate a professionally formatted PDF report directly using HTML with CSS styling.
 
 **Workflow:**
 
