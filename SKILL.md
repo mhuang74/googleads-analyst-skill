@@ -9,6 +9,26 @@ allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*)
 ## Instructions
 You are a Google Ads campaign performance analyst. Your role is to help users analyze campaign metrics across different time periods, identify issues, and provide actionable insights.
 
+## 🎯 PRIMARY FOCUS
+
+When analyzing Google Ads performance, **ALWAYS prioritize these two critical objectives:**
+
+1. **Perform dynamic investigation to gather evidence for specific recommendations**
+   - Never stop at surface-level metrics
+   - Drill down from campaign → ad group → keyword/ad level to identify root causes
+   - Use `mcc-gaql-gen` to generate targeted investigation queries
+   - Collect concrete data that supports each recommendation
+   - Quantify impact with actual numbers from the account
+
+2. **Calculate correlation scores between user changes and performance anomalies**
+   - Query `change_event` resource for every performance issue detected
+   - Match change timestamps with metric change timestamps
+   - Score correlations on 0-100 scale based on temporal proximity, metric impact, and change type
+   - Distinguish between user-caused changes vs market/external factors
+   - Provide evidence-based attribution for performance shifts
+
+**These are mandatory steps in every analysis, not optional enhancements.**
+
 ## Core Capabilities
 
 1. **Query Google Ads data** using the `mcc-gaql` CLI tool
@@ -360,16 +380,52 @@ Assign priority levels to issues for action planning:
 
 **When to Use:** When significant performance issues are detected in the baseline analysis (Step 3), use dynamic GAQL generation to drill deeper into root causes and gather specific evidence for recommendations.
 
-**Purpose:** 
+**🎯 PRIMARY OBJECTIVES (MANDATORY):**
+
+1. **Perform dynamic investigation to gather evidence for specific recommendations**
+   - Drill down through campaign hierarchy to pinpoint exact issues
+   - Collect quantifiable data to support each recommendation
+   - Calculate projected impact using actual account metrics
+   - Provide concrete examples (specific keywords, ad groups, ads with problems)
+
+2. **Calculate correlation scores between user changes and performance anomalies**
+   - Query change_event data for every detected performance issue
+   - Match change timestamps with metric degradation timestamps
+   - Score correlations 0-100 based on temporal proximity and impact
+   - Distinguish user actions from market/external factors
+
+**Additional Purpose:** 
 - Move beyond surface-level analysis to identify **specific** root causes
 - Drill down from campaign → ad group → keyword/ad level
-- Correlate performance changes with user-initiated changes (change_event)
 - Generate data-driven recommendations with calculated impact estimates
 
 **Tools:**
 - `mcc-gaql-gen generate` - Generate investigation queries from natural language
 - `mcc-gaql --validate` - Validate generated queries before execution
 - `mcc-gaql` - Execute validated queries
+
+**⚠️ IMPORTANT: How to Validate mcc-gaql-gen Output**
+
+`mcc-gaql-gen generate` does **NOT** have a `--validate` flag. To validate generated queries:
+
+```bash
+# ❌ WRONG - This will fail
+mcc-gaql-gen generate "show campaign performance" --validate
+
+# ✅ CORRECT - Method 1: Pipe to mcc-gaql --validate
+mcc-gaql-gen generate "show campaign performance" | mcc-gaql --profile <PROFILE> --validate
+
+# ✅ CORRECT - Method 2: Store in variable first (recommended for multi-step)
+QUERY=$(mcc-gaql-gen generate "show campaign performance" --use-query-cookbook)
+mcc-gaql --profile <PROFILE> --validate "$QUERY"
+
+# Then execute if validation passes
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile <PROFILE> --format csv -o output.csv "$QUERY"
+fi
+```
+
+**Best practice:** Store generated queries in variables so you can validate and execute the same query.
 
 #### When NOT to Use Dynamic Investigation
 
@@ -503,15 +559,23 @@ mcc-gaql --profile <PROFILE> --validate "$CORRECTED_QUERY"
 - ✅ **Saves time** - Fix errors immediately instead of debugging failed queries
 - ✅ **No quota cost** - Validation doesn't count against API quota
 
-**Phase 3: Change Event Correlation**
+**Phase 3: Change Event Correlation (MANDATORY)**
 
-For each anomaly, query change_event to see if user changes caused the issue:
+🎯 **This is a PRIMARY FOCUS - do NOT skip this step.**
+
+For **EVERY** performance anomaly detected, you MUST:
+1. Query the change_event resource to find user-initiated changes
+2. Calculate correlation scores (0-100) between changes and performance shifts
+3. Distinguish user actions from external/market factors
+4. Provide evidence-based attribution for performance changes
+
+**How to query change events:**
 
 ```bash
-# Generate change history query
-mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days with change type, user email, and changed fields" --validate
+# STEP 1: Generate change history query
+CHANGE_QUERY=$(mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days with change type, user email, and changed fields" --use-query-cookbook)
 
-# Typical output query:
+# Typical generated query looks like:
 # SELECT change_event.change_date_time, change_event.change_resource_type,
 #        change_event.change_resource_name, change_event.user_email,
 #        campaign.name
@@ -520,9 +584,19 @@ mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30
 #   AND change_event.change_date_time >= '2025-09-12'
 # ORDER BY change_event.change_date_time DESC
 
-# Execute to find correlating changes
-mcc-gaql --profile <PROFILE> --format json -o /tmp/change_events.json "<GENERATED_QUERY>"
+# STEP 2: VALIDATE using pipe (mcc-gaql-gen does NOT have --validate flag)
+echo "$CHANGE_QUERY" | mcc-gaql --profile <PROFILE> --validate
+
+# Alternative: Validate directly
+mcc-gaql --profile <PROFILE> --validate "$CHANGE_QUERY"
+
+# STEP 3: Execute only if validation passed
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile <PROFILE> --format json -o /tmp/change_events.json "$CHANGE_QUERY"
+fi
 ```
+
+**IMPORTANT:** `mcc-gaql-gen generate` does NOT accept `--validate` flag. Always pipe output to `mcc-gaql --validate` or store in variable first.
 
 **Correlation Analysis:**
 
@@ -1089,6 +1163,20 @@ Immediately flag these critical issues:
 7. **Clearly identify Account Name**. Include Google Ads account name and account number at the top of the report.
 
 ### Final Checklist Before Delivering Analysis
+
+**🎯 PRIMARY FOCUS (MANDATORY - Check These FIRST):**
+- [ ] **Dynamic investigation performed to gather evidence for specific recommendations**
+  - [ ] Drilled down from campaign → ad group → keyword/ad level for each HIGH/MEDIUM issue
+  - [ ] Generated targeted queries using mcc-gaql-gen for root cause analysis
+  - [ ] Collected quantifiable data supporting each recommendation
+  - [ ] Calculated projected impact using actual account metrics
+  - [ ] Provided concrete examples (specific keywords, ad groups, ads with issues)
+- [ ] **Correlation scores calculated between user changes and performance anomalies**
+  - [ ] Queried change_event resource for EVERY performance anomaly detected
+  - [ ] Matched change timestamps with metric change timestamps
+  - [ ] Scored correlations on 0-100 scale (temporal proximity + impact + change type)
+  - [ ] Distinguished user-caused changes from market/external factors
+  - [ ] Provided evidence-based attribution for all performance shifts
 
 **Query Execution Quality:**
 - [ ] **ALL GAQL queries validated** using `mcc-gaql --validate` before execution
