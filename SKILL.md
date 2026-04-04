@@ -39,8 +39,9 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
 6. **Correlate performance changes** with user-initiated changes via change_event analysis
 7. **Provide contextual insights** considering metric relationships
 8. **Recommend specific actions** with calculated impact estimates and supporting evidence
-9. **Present findings interactively** and engage in Q&A with the user
-10. **Generate professional PDF reports** (when requested) with proper formatting, tables, and visual hierarchy
+9. **Present findings as text report** with markdown tables directly in the terminal
+10. **Engage in interactive Q&A** until user is satisfied with the analysis
+11. **Generate PDF reports** (only when user requests, after analysis is complete)
 
 ## Workflow
 
@@ -815,58 +816,83 @@ Recommendation: Consolidate campaigns or align expansion settings
 - User explicitly requests thorough investigation
 
 
-### 5. Present Findings and Offer PDF Report
+### 5. Present Text Report and Interactive Q&A
 
-**IMPORTANT: Present analysis findings interactively FIRST, then offer PDF as an option.**
+**Present your analysis as a text report directly in the terminal using markdown formatting.**
 
-#### Step 1: Present Findings in Conversation
+#### Step 1: Generate Text Report
 
-After completing baseline analysis and dynamic investigation, present your findings directly in the conversation using this structure:
+After completing baseline analysis and dynamic investigation, present findings as a **text report with markdown tables**. Adapt the structure based on what's relevant:
 
-**Executive Summary** (2-3 sentences)
-- Overall performance trend and most significant changes
-- Critical actions needed
+**For complex analyses (multiple issues, significant changes):**
 
-**Critical Issues** (🔴 HIGH priority)
-- Issue description with root cause evidence
-- Specific recommendation with expected impact
-- Correlation score if user changes detected
+```markdown
+## Executive Summary
+[2-3 sentences on overall performance and critical actions needed]
 
-**Issues to Monitor** (🟡 MEDIUM priority)
-- Issue description and trend
-- Recommended action
+## Campaign Performance
 
-**Positive Trends** (🟢 Successes)
-- What's working well
-- Opportunities to scale
+| Campaign | Spend | Conv | CPA | ROAS | Change | Status |
+|----------|-------|------|-----|------|--------|--------|
+| Brand Search | $1,234 | 45 | $27.42 | 4.2x | +15% | 🟢 |
+| Generic Terms | $2,567 | 23 | $111.61 | 1.8x | -25% | 🔴 |
 
-**Key Recommendations** (prioritized list)
-- Specific, actionable items with expected impact
+## 🔴 Critical Issues
+
+### 1. [Campaign Name]: [Issue Title]
+- **Problem**: [Description with data]
+- **Root Cause**: [Evidence from investigation, correlation score if applicable]
+- **Recommendation**: [Specific action with expected impact]
+
+## 🟡 Issues to Monitor
+[If any medium priority items]
+
+## 🟢 What's Working
+[Positive trends worth noting]
+
+## Top Recommendations
+1. [Most important action]
+2. [Second priority]
+3. [Third priority]
+```
+
+**For simple analyses (minor changes, no major issues):**
+
+```markdown
+## Summary
+[Brief overview - account is performing well/stable]
+
+## Campaign Performance
+[Markdown table with key metrics]
+
+## Notes
+[Any minor observations or opportunities]
+```
 
 #### Step 2: Interactive Q&A
 
-After presenting findings, **pause and invite questions:**
+After presenting the text report, **pause and invite questions:**
 
 ```
 "Do you have questions about any of these findings?"
 "Would you like me to investigate any specific campaign or metric further?"
 ```
 
-Engage in Q&A until the user indicates they're satisfied.
+**Continue the Q&A loop** until the user indicates they're satisfied or has no more questions.
 
-#### Step 3: Offer PDF (Optional)
+#### Step 3: Wrap Up
 
-After Q&A concludes, mention PDF availability:
+Once the user is happy with the analysis, mention PDF availability:
 
 ```
-"Let me know if you'd like a PDF version of this analysis."
+"A PDF version is available if you need it for sharing."
 ```
 
-**Only generate the PDF if the user explicitly requests it.**
+**Only generate PDF if the user explicitly requests it.**
 
 ---
 
-### 6. Generating PDF Report (When Requested)
+### 6. Generating PDF Report (Only When Requested)
 
 **This section only applies if the user requests a PDF.** Generate a professionally formatted PDF report that is easy to read and suitable for client presentation.
 
@@ -1040,47 +1066,52 @@ fi
 
 See [Section 4: Dynamic Investigation Mode](#4-dynamic-investigation-mode-required-when-issues-detected) for full workflow.
 
-**Step 5c: Present Findings (Interactive Q&A)**
+**Step 5c: Present Text Report**
 
-**DO NOT generate a PDF yet.** First, present your analysis findings directly in the conversation:
+Present your analysis as a **text report with markdown tables** directly in the terminal:
 
-1. **Executive Summary** (2-3 sentences on overall performance)
-2. **Critical Issues Found** (🔴 HIGH priority items with root causes and evidence)
-3. **Issues to Monitor** (🟡 MEDIUM priority items)
-4. **Key Recommendations** (specific actions with expected impact)
-5. **Positive Trends** (🟢 what's working well)
+```markdown
+## Executive Summary
+[2-3 sentences on overall performance]
 
-After presenting findings, **pause and invite user questions:**
+## Campaign Performance
+| Campaign | Spend | Conv | CPA | ROAS | Change | Status |
+|----------|-------|------|-----|------|--------|--------|
+| ... | ... | ... | ... | ... | ... | ... |
+
+## 🔴 Critical Issues
+[If any - with root causes and recommendations]
+
+## 🟡 Issues to Monitor  
+[If any]
+
+## Top Recommendations
+1. [Action item]
+2. [Action item]
+```
+
+Adapt structure based on complexity - simpler report for accounts with no major issues.
+
+**Step 5d: Interactive Q&A**
+
+After presenting the text report, **pause and invite questions:**
 
 ```
 "Do you have questions about any of these findings?"
 "Would you like me to investigate any specific campaign or metric further?"
 ```
 
-**Engage in Q&A** until the user indicates they're satisfied or have no more questions.
+**Continue Q&A** until the user is satisfied.
 
-**Step 6: Offer PDF Report (Optional)**
+**Step 6: Wrap Up**
 
-After the Q&A concludes, mention PDF availability:
+Once the user is happy with the analysis:
 
 ```
-"Let me know if you'd like a PDF version of this analysis."
+"A PDF version is available if you need it for sharing."
 ```
 
-**Only generate the PDF if the user explicitly requests it.**
-
-If requested, save report as: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
-
-Report structure (when requested):
-1. **Executive Summary** (2-3 sentences on overall performance)
-2. **Detailed Campaign Analysis** (professionally formatted table with metrics, changes, and **impression share data**)
-3. **🚨 HIGH PRIORITY Issues** (with specific diagnoses and actions, **include impression share insights**)
-4. **⚠️ MEDIUM PRIORITY Issues** (with recommendations)
-5. **📊 Account-Level Summary** (aggregate totals)
-6. **🎯 Next Steps Priority List** (actionable timeline)
-7. **Appendix with impression share insights** (flag budget vs rank issues)
-
-**PDF Formatting:** Generate HTML content with professional styling, then convert to PDF immediately.
+**Only generate PDF if user explicitly requests it.**
 
 For common errors and solutions, see [common_errors_reference](common_errors_reference.md).
 
@@ -1126,8 +1157,9 @@ mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --for
 - Read CSVs and calculate metrics
 - Analyze patterns and identify issues
 - Run Dynamic Investigation if HIGH/MEDIUM issues found
-- Present findings interactively and engage in Q&A
-- Offer PDF report if user wants one
+- Present text report with markdown tables
+- Engage in interactive Q&A until user is satisfied
+- Mention PDF is available if needed for sharing
 
 ### Data Quality Checks
 
@@ -1198,15 +1230,16 @@ Immediately flag these critical issues:
 
 ### Reporting Best Practices
 
-1. **Generate PDF report directly with standardized filename**: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf` for easy identification
-2. **Always show date ranges** being compared at the top of your analysis
-3. **Use professional HTML/CSS formatting**: Tables with alternating row shading, bullet points for insights, emoji status indicators
+1. **Present text report first**: Use markdown tables directly in the terminal before offering PDF
+2. **Adapt structure to complexity**: More detail for critical issues, simpler for healthy accounts
+3. **Always show date ranges** being compared at the top of your analysis
 4. **Prioritize actionable insights** over raw data dumps
 5. **Lead with conclusions**: Executive summary first, details after
 6. **Provide context**: Include account totals, not just campaign-level data
 7. **Note data limitations**: Small sample sizes, statistical significance concerns
-8. **Ensure proper text alignment**: Left-align text content, right-align numeric columns in tables
-9. **Use adequate spacing**: Line breaks between sections, proper paragraph spacing for readability
+8. **Engage in Q&A**: Pause after presenting report, invite questions, continue until user is satisfied
+9. **Mention PDF at the end**: "A PDF version is available if you need it for sharing"
+10. **Generate PDF only when requested**: Use standardized filename `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
 
 ### Analysis Best Practices
 
@@ -1297,22 +1330,23 @@ Immediately flag these critical issues:
 - [ ] Data quality issues flagged if any
 - [ ] **Appendix with current/prior period data tables included** (see [Appendix Requirements](appendix_reference.md))
 
-**PDF Formatting & Delivery:**
-- [ ] **PDF saved with proper filename**: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
-- [ ] Professional fonts applied (sans-serif for body, proper sizing)
-- [ ] **Text alignment correct**: Left-aligned text, right-aligned numbers
-- [ ] **Tables properly formatted**:
-  - [ ] Alternating row shading for readability
-  - [ ] Clear column headers with background color
-  - [ ] Adequate cell padding (8px minimum)
-  - [ ] Borders visible and clean
-- [ ] **Proper line breaks** between sections for readability
-- [ ] **Bullet points used** for lists with adequate spacing
-- [ ] **Headers on every page** (account name, title, date range)
-- [ ] **Footers on every page** (generation timestamp, page numbers)
-- [ ] **Color coding works** (🟢 🟡 🔴 visible and distinguishable)
-- [ ] Tables don't break awkwardly across pages
-- [ ] PDF is client-ready and professional looking
+**Text Report Formatting:**
+- [ ] **Markdown tables used** for campaign performance data
+- [ ] **Structure adapted** to complexity (detailed for issues, simple for healthy accounts)
+- [ ] **Status indicators included** (🟢 🟡 🔴)
+- [ ] **Sections clearly separated** with headers
+- [ ] Report is readable in terminal
+
+**Interactive Q&A:**
+- [ ] **Paused after presenting report** to invite questions
+- [ ] **Engaged in Q&A** until user indicated satisfaction
+- [ ] **Mentioned PDF availability** at the end: "A PDF version is available if you need it for sharing"
+
+**PDF (Only If User Requests):**
+- [ ] PDF saved with proper filename: `google_ads_report_{account_name}_{YYYY-MM-DD}.pdf`
+- [ ] Professional formatting applied
+- [ ] Tables properly formatted with alternating row shading
+- [ ] Headers/footers on every page
 
 ### 6. Generating PDF Report (When Requested)
 
