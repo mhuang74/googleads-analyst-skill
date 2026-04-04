@@ -46,8 +46,22 @@ Show change events for campaign [CAMPAIGN_NAME] in last [N] days including chang
 
 **Example:**
 ```bash
-mcc-gaql-gen generate "Show change events for campaign Brand Search in last 30 days with change type and user email" --validate
+# Generate the query
+QUERY=$(mcc-gaql-gen generate "Show change events for campaign Brand Search in last 30 days with change type and user email" --use-query-cookbook)
+
+# Validate using pipe (mcc-gaql-gen does NOT have --validate flag)
+echo "$QUERY" | mcc-gaql --profile <PROFILE> --validate
+
+# Alternative: Validate directly
+mcc-gaql --profile <PROFILE> --validate "$QUERY"
+
+# Execute if validation passes
+if [ $? -eq 0 ]; then
+  mcc-gaql --profile <PROFILE> --format json -o output.json "$QUERY"
+fi
 ```
+
+**IMPORTANT:** `mcc-gaql-gen generate` does NOT accept `--validate` flag. Always validate the generated query separately using `mcc-gaql --validate`.
 
 ### Change Event Query by Resource Type
 
