@@ -20,6 +20,32 @@ This reference provides guidance on correlating performance anomalies with user-
 
 **⚠️ API Limitation:** Change events are only available for the last 30 days via Google Ads API. Only query change events if the performance issues you're investigating occurred within this 30-day window.
 
+### ⚠️ CRITICAL: change_event Query Requirements
+
+The `change_event` resource has **strict API requirements** that differ from other resources:
+
+| Requirement | Rule | Example |
+|-------------|------|---------|
+| **LIMIT** | MUST include `LIMIT` clause, max 10,000 | `LIMIT 5000` |
+| **Start Date** | MUST be within last 30 days | `>= "2026-03-06"` (if today is 2026-04-05) |
+| **End Date** | MUST be specified (no open-ended ranges) | `<= "2026-04-05"` |
+| **Both Dates** | MUST specify both start AND end | Cannot omit either |
+
+**Correct Template:**
+```sql
+SELECT ...
+FROM change_event
+WHERE change_event.change_date_time >= "[START_DATE within 30 days]"
+  AND change_event.change_date_time <= "[END_DATE up to today]"
+ORDER BY change_event.change_date_time DESC
+LIMIT 5000
+```
+
+**Common Mistakes:**
+- ❌ Missing LIMIT → "Change event requests must specify a LIMIT"
+- ❌ Start date >30 days ago → "The requested start date is too old"
+- ❌ Missing end date → "filtering with an infinite range"
+
 ### Basic Change Event Query
 
 ```sql
@@ -37,6 +63,7 @@ WHERE campaign.id = [CAMPAIGN_ID]
   AND change_event.change_date_time >= '[START_DATE]'
   AND change_event.change_date_time <= '[END_DATE]'
 ORDER BY change_event.change_date_time DESC
+LIMIT 5000
 ```
 
 ### Using mcc-gaql-gen to Generate Change Queries
@@ -80,16 +107,28 @@ SELECT
 FROM change_event
 WHERE campaign.id = [CAMPAIGN_ID]
   AND change_event.change_resource_type = 'CAMPAIGN_BUDGET'
-  AND change_event.change_date_time >= '[DATE]'
+  AND change_event.change_date_time >= '[START_DATE]'
+  AND change_event.change_date_time <= '[END_DATE]'
+ORDER BY change_event.change_date_time DESC
+LIMIT 5000
 
 -- Bid strategy changes
 WHERE change_event.change_resource_type = 'BIDDING_STRATEGY'
+  AND change_event.change_date_time >= '[START_DATE]'
+  AND change_event.change_date_time <= '[END_DATE]'
+LIMIT 5000
 
 -- Ad changes
 WHERE change_event.change_resource_type = 'AD'
+  AND change_event.change_date_time >= '[START_DATE]'
+  AND change_event.change_date_time <= '[END_DATE]'
+LIMIT 5000
 
 -- Keyword changes
 WHERE change_event.change_resource_type = 'AD_GROUP_CRITERION'
+  AND change_event.change_date_time >= '[START_DATE]'
+  AND change_event.change_date_time <= '[END_DATE]'
+LIMIT 5000
 ```
 
 ---
@@ -144,6 +183,7 @@ WHERE campaign.id = [CAMPAIGN_ID]
   AND change_event.change_date_time >= '[ANOMALY_START - 7 days]'
   AND change_event.change_date_time <= '[ANOMALY_START + 2 days]'
 ORDER BY change_event.change_date_time DESC
+LIMIT 5000
 ```
 
 **Detection Window Rationale:**
