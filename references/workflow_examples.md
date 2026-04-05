@@ -94,7 +94,8 @@ if [ $? -eq 0 ]; then
 fi
 
 # INVESTIGATION 2: Check for user-initiated changes that might explain the issue
-# Step 1: Generate change event query
+# NOTE: change_event has strict requirements - LIMIT required, dates must be within 30 days
+# Step 1: Generate change event query (mcc-gaql-gen should generate with LIMIT)
 CHANGE_QUERY=$(mcc-gaql-gen generate "Show change events for campaign 'Brand Search' in last 30 days with change type and user")
 
 # Step 2: VALIDATE before executing (REQUIRED)

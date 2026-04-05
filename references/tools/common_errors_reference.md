@@ -51,3 +51,26 @@
   2. Check if previous periods had conversions
   3. Recommend verifying conversion tags in Google Ads
   4. Suggest checking Google Tag Manager and website for tag issues
+
+---
+
+## change_event Resource Errors
+
+The `change_event` resource has unique API requirements. These errors do NOT apply to other resources.
+
+**Error: "Change event requests must specify a LIMIT in query and LIMIT should be less than or equal to 10k"**
+- **Cause**: Query missing LIMIT clause
+- **Solution**: Add `LIMIT 5000` (or up to 10000) at end of query
+
+**Error: "The requested start date is too old. It cannot be older than 30 days"**
+- **Cause**: Start date is more than 30 days in the past
+- **Solution**: Adjust start date to be within the last 30 days from today
+
+**Error: "The change_event request is missing filters on change_event.change_date_time or is filtering on change_event.change_date_time with an infinite range"**
+- **Cause**: Missing end date in WHERE clause (only start date specified)
+- **Solution**: Specify BOTH start AND end dates:
+  ```sql
+  WHERE change_event.change_date_time >= "[START]"
+    AND change_event.change_date_time <= "[END]"
+  LIMIT 5000
+  ```
