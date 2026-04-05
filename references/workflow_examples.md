@@ -227,7 +227,7 @@ mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --for
 If the user answers **"Yes"** to the Grants account question, respond with:
 
 ```
-**Note:** Since this is a Grants account, I'll focus on CTR (must stay above 5% for eligibility), conversion metrics, and Quality Score. High lost impression share is expected for Grants accounts due to bid caps and won't be flagged as an issue.
+**Note:** Since this is a Grants account, I'll focus on CTR for Search campaigns (must stay above 5% for eligibility; Performance Max campaigns are exempt from this requirement), conversion metrics, and Quality Score. High lost impression share is expected for Grants accounts due to bid caps and won't be flagged as an issue.
 ```
 
 Then proceed with analysis but:
@@ -235,7 +235,7 @@ Then proceed with analysis but:
 - **Do NOT recommend budget increases** (capped at $10K/month)
 - **Do NOT recommend bid increases above $2** (Grants max CPC)
 - **Focus on:**
-  - CTR (critical - must maintain >5% for Grants eligibility)
+  - CTR for Search campaigns (critical - must maintain >5% for Grants eligibility; Performance Max campaigns are exempt from this requirement)
   - Conversion metrics (CPA, conversion rate, ROAS)
   - Quality Score improvements (improve ad rank within bid constraints)
   - Ad relevance and landing page experience

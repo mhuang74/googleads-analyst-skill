@@ -71,7 +71,7 @@ Use this decision tree to assign status to each campaign:
 
 **Still evaluate for Grants accounts:**
 - Conversion metrics (CPA, conversion rate, ROAS)
-- CTR (must maintain >5% to keep Grants eligibility)
+- CTR for Search campaigns (must maintain >5% to keep Grants eligibility; Performance Max campaigns are exempt from this requirement)
 - Quality Score (affects ad rank within bid constraints)
 - Ad relevance and landing page experience
 
@@ -131,6 +131,6 @@ Use impression share data to classify issue priority:
 - **MEDIUM PRIORITY**: Budget Lost IS 20-50% OR Rank Lost IS 50-70%
 - **LOW PRIORITY**: Budget Lost IS <20% AND Rank Lost IS <50%
 
-**Grants Account Override:** If account is a Google Ads Grants account, exclude impression share metrics from priority classification. Focus on CTR (must stay >5% for eligibility), conversion metrics, and Quality Score instead.
+**Grants Account Override:** If account is a Google Ads Grants account, exclude impression share metrics from priority classification. Focus on CTR for Search campaigns (must stay >5% for eligibility; Performance Max campaigns are exempt), conversion metrics, and Quality Score instead.
 
 Higher severity = more investigation depth required in Dynamic Investigation Mode.
