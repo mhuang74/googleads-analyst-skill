@@ -18,6 +18,8 @@ This reference provides guidance on correlating performance anomalies with user-
 
 ## Querying Change Events
 
+**⚠️ API Limitation:** Change events are only available for the last 30 days via Google Ads API. Only query change events if the performance issues you're investigating occurred within this 30-day window.
+
 ### Basic Change Event Query
 
 ```sql
