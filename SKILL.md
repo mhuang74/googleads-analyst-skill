@@ -73,7 +73,12 @@ If the user doesn't have a profile configured, ask for:
 3. **User Email**: "What is your Google account email with access to this account?" (e.g., user@example.com)
 - Command format: `mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> ...`
 
-**B. Analysis Parameters:**
+**B. Account Type:**
+- Ask: "Is this a Google Ads Grants account (non-profit)?" (yes/no)
+- If unknown, suggest checking: "Grants accounts have a $10K/month cap and $2 max CPC"
+- **This affects how impression share metrics are interpreted** - Grants accounts normally have 80-95% lost impression share due to bid caps
+
+**C. Analysis Parameters:**
 - What time periods to compare (if not specified, suggest: last 7 days vs previous 7 days)
 - Which campaigns to analyze (if not specified, analyze all campaigns)
 - Specific metrics of interest (if not specified, use comprehensive set)
