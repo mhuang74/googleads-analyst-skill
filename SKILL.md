@@ -21,7 +21,9 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
    - Quantify impact with actual numbers from the account
 
 2. **Calculate correlation scores between user changes and performance anomalies**
-   - Query `change_event` resource for every performance issue detected
+   - Query `change_event` resource for performance issues detected
+   - **API Limitation:** Change events are only available for the last 30 days via Google Ads API
+   - Only query change_event if HIGH/MEDIUM priority issues fall within the last 30 days
    - Match change timestamps with metric change timestamps
    - Score correlations on 0-100 scale based on temporal proximity, metric impact, and change type
    - Distinguish between user-caused changes vs market/external factors
@@ -567,11 +569,21 @@ mcc-gaql --profile <PROFILE> --validate "$CORRECTED_QUERY"
 - ✅ **Saves time** - Fix errors immediately instead of debugging failed queries
 - ✅ **No quota cost** - Validation doesn't count against API quota
 
-**Phase 3: Change Event Correlation (MANDATORY)**
+**Phase 3: Change Event Correlation (CONDITIONAL)**
 
-🎯 **This is a PRIMARY FOCUS - do NOT skip this step.**
+🎯 **This is a PRIMARY FOCUS when applicable.**
 
-For **EVERY** performance anomaly detected, you MUST:
+**API Limitation:** Change events are only available for the last 30 days via Google Ads API.
+
+**When to Query Change Events:**
+- HIGH or MEDIUM priority issues detected AND
+- Issue date range falls within the last 30 days from today
+
+**Skip change event analysis when:**
+- Issue date range is entirely outside the 30-day window (no data available)
+- Only LOW priority issues detected
+
+When conditions are met, you MUST:
 1. Query the change_event resource to find user-initiated changes
 2. Calculate correlation scores (0-100) between changes and performance shifts
 3. Distinguish user actions from external/market factors
