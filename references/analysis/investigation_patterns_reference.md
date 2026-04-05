@@ -266,6 +266,8 @@ LIMIT 20
 
 ## Symptom: Impression Share Loss
 
+> **⚠️ GRANTS ACCOUNTS:** Skip this entire section for Google Ads Grants accounts. High lost impression share (80-95%) is expected due to $2 CPC cap and is not actionable.
+
 **When to Investigate:**
 - Search impression share dropped >15%
 - Budget-lost IS >20% (budget constraint)

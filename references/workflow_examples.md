@@ -6,6 +6,11 @@ This document provides end-to-end examples of the Google Ads analyst workflow.
 
 **User:** "Analyze campaign performance for the last 7 days compared to the previous 7 days using profile themade"
 
+**Account Type Check:**
+"Is this a Google Ads Grants account (for non-profits)? Grants accounts have special rules - $10K/month cap and $2 max CPC."
+
+**User:** "No, this is a regular account."
+
 ### Step 1: Determine date ranges and verify data availability
 
 ```bash
@@ -178,6 +183,11 @@ I'll help you analyze your Google Ads performance. Since you don't have a profil
 - Customer ID: 9876543210
 - User: john@example.com
 
+**Account Type Check:**
+"Is this a Google Ads Grants account (for non-profits)? Grants accounts have special rules - $10K/month cap and $2 max CPC."
+
+**User:** "No, this is a regular account."
+
 ### Step 2: Determine date ranges and verify data availability
 
 ```bash
@@ -208,5 +218,27 @@ mcc-gaql --mcc 1234567890 --customer-id 9876543210 --user john@example.com --for
 - Present text report
 - Interactive Q&A
 - Mention PDF availability
+
+---
+
+## Note: Grants Account Workflow Variation
+
+If the user answers **"Yes"** to the Grants account question, respond with:
+
+```
+**Note:** Since this is a Grants account, I'll focus on CTR (must stay above 5% for eligibility), conversion metrics, and Quality Score. High lost impression share is expected for Grants accounts due to bid caps and won't be flagged as an issue.
+```
+
+Then proceed with analysis but:
+- **Skip all impression share-based issue detection**
+- **Do NOT recommend budget increases** (capped at $10K/month)
+- **Do NOT recommend bid increases above $2** (Grants max CPC)
+- **Focus on:**
+  - CTR (critical - must maintain >5% for Grants eligibility)
+  - Conversion metrics (CPA, conversion rate, ROAS)
+  - Quality Score improvements (improve ad rank within bid constraints)
+  - Ad relevance and landing page experience
+
+---
 
 For common errors and solutions, see [common_errors_reference.md](../tools/common_errors_reference.md).

@@ -57,6 +57,24 @@ Use this decision tree to assign status to each campaign:
 | 🟡 **Mixed Issues** | >30% | >30% | Both budget and quality problems | Address quality first, then budget |
 | 🟢 **Good Coverage** | <10% | <30% | Healthy impression share | Monitor and optimize |
 
+### Google Ads Grants Exception
+
+**For Google Ads Grants accounts, SKIP all impression share-based issue detection:**
+
+- Do NOT flag high Budget Lost IS as CRITICAL or MONITOR
+- Do NOT flag high Rank Lost IS as CRITICAL or MONITOR  
+- Do NOT trigger impression share investigations
+- Do NOT recommend budget increases (capped at $10K/month)
+- Do NOT recommend bid increases above $2 CPC cap
+
+**Why:** Grants accounts have structural limitations ($2 max CPC, $10K/month budget) that cause 80-95% lost impression share by design. This is expected behavior, not a problem.
+
+**Still evaluate for Grants accounts:**
+- Conversion metrics (CPA, conversion rate, ROAS)
+- CTR (must maintain >5% to keep Grants eligibility)
+- Quality Score (affects ad rank within bid constraints)
+- Ad relevance and landing page experience
+
 ### Common Mistakes to Avoid
 
 - ❌ **DON'T recommend "increase budget"** if Budget Lost IS = 0% (this was the mistake in the themade analysis)
@@ -112,5 +130,7 @@ Use impression share data to classify issue priority:
 - **HIGH PRIORITY**: Budget Lost IS >50% OR Rank Lost IS >70%
 - **MEDIUM PRIORITY**: Budget Lost IS 20-50% OR Rank Lost IS 50-70%
 - **LOW PRIORITY**: Budget Lost IS <20% AND Rank Lost IS <50%
+
+**Grants Account Override:** If account is a Google Ads Grants account, exclude impression share metrics from priority classification. Focus on CTR (must stay >5% for eligibility), conversion metrics, and Quality Score instead.
 
 Higher severity = more investigation depth required in Dynamic Investigation Mode.
