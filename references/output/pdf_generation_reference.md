@@ -105,6 +105,35 @@ google_ads_report_{account_name}_{YYYY-MM-DD}.pdf
 - Numeric columns: Right-aligned
 - Text columns: Left-aligned
 
+## Report Section Structure
+
+The complete report includes the following sections in order:
+
+1. **Colored Header Block** - Account name, date range, author
+2. **Report Details** - Account ID, comparison period, generation date
+3. **Executive Summary** - 2-3 sentence overview
+4. **Key Findings** - Bulleted list with status indicators
+5. **Detailed Campaign Analysis** - Campaign performance table
+6. **🔍 Ad Group Analysis** *(conditional)* - Drill-down when issues detected
+   - Shows WHERE within campaigns problems are occurring
+   - Ad group performance tables with findings
+   - Highlights underperforming ad groups
+7. **🚨 High Priority Issues** *(conditional)* - Critical problems requiring immediate action
+8. **⚠️ Medium Priority Issues** *(conditional)* - Warning signs to monitor
+9. **🔬 Root Cause Analysis** *(conditional)* - WHY performance changed
+   - Change event correlation (user actions vs market factors)
+   - Correlation scores (0-100)
+   - Timeline of changes vs metric shifts
+   - Evidence-based recommendations
+10. **📊 Account-Level Summary** - Overall totals and period comparison
+11. **🎯 Next Steps** - Prioritized action items (immediate, this week, ongoing)
+12. **Credit Attribution** - Report generation credit
+
+**Note:** Sections marked *(conditional)* should only appear when relevant data exists. For example:
+- Ad Group Analysis: Only when HIGH/MEDIUM priority issues are detected
+- Root Cause Analysis: Only when investigating specific performance anomalies
+- Priority Issues: Only when campaigns have issues in those categories
+
 ## HTML Template for PDF Generation
 
 **Primary Approach:** Generate HTML with inline CSS, then convert to PDF using pandoc + weasyprint.
@@ -307,6 +336,45 @@ google_ads_report_{account_name}_{YYYY-MM-DD}.pdf
       color: #666666;
       font-style: italic;
     }
+
+    .root-cause-box {
+      background-color: #f8f9fa;
+      border: 2px solid #4285F4;
+      border-radius: 6px;
+      padding: 16pt;
+      margin-bottom: 16pt;
+    }
+
+    .root-cause-box .timeline {
+      font-family: "Roboto Mono", "Courier New", monospace;
+      font-size: 10pt;
+      margin: 8pt 0;
+      padding: 8pt;
+      background-color: white;
+      border-left: 3px solid #4285F4;
+    }
+
+    .root-cause-box .correlation-score {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #4285F4;
+      margin: 8pt 0;
+    }
+
+    .root-cause-box .assessment {
+      background-color: #e8f4fd;
+      padding: 10pt;
+      border-radius: 4px;
+      margin-top: 8pt;
+    }
+
+    .ad-group-finding {
+      background-color: #fffbf0;
+      border-left: 4px solid #ffc107;
+      padding: 10pt;
+      margin-top: 8pt;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -379,6 +447,59 @@ google_ads_report_{account_name}_{YYYY-MM-DD}.pdf
   </div>
 
   <div class="section">
+    <h2>🔍 Ad Group Analysis</h2>
+    <p><em>This section appears when issues are detected and provides drill-down analysis to identify WHERE within campaigns problems are occurring.</em></p>
+    
+    <h3>[Campaign Name] - Ad Group Breakdown</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Ad Group Name</th>
+          <th class="number">Clicks</th>
+          <th class="number">Conv.</th>
+          <th class="number">Conv. Rate</th>
+          <th class="number">Cost</th>
+          <th class="number">CPA</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Exact Match - Primary</td>
+          <td class="number">234</td>
+          <td class="number">12</td>
+          <td class="number">5.1%</td>
+          <td class="number">$1,234.56</td>
+          <td class="number">$102.88</td>
+          <td><span class="status-good">🟢</span></td>
+        </tr>
+        <tr>
+          <td>Phrase Match - General</td>
+          <td class="number">456</td>
+          <td class="number">3</td>
+          <td class="number">0.7%</td>
+          <td class="number">$2,345.67</td>
+          <td class="number">$781.89</td>
+          <td><span class="status-critical">🔴</span></td>
+        </tr>
+        <tr>
+          <td>Broad Match - Discovery</td>
+          <td class="number">123</td>
+          <td class="number">1</td>
+          <td class="number">0.8%</td>
+          <td class="number">$567.89</td>
+          <td class="number">$567.89</td>
+          <td><span class="status-critical">🔴</span></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="ad-group-finding">
+      <strong>Finding:</strong> "Phrase Match - General" ad group has 10x lower conversion rate than "Exact Match - Primary" despite 2x higher spend. Recommend pausing low-performing ad groups and reallocating budget to top performers.
+    </div>
+  </div>
+
+  <div class="section">
     <h2>🚨 High Priority Issues</h2>
     <div class="priority-high">
       <h3>[Campaign Name]</h3>
@@ -396,6 +517,62 @@ google_ads_report_{account_name}_{YYYY-MM-DD}.pdf
     <div class="priority-medium">
       <h3>[Campaign Name]</h3>
       <p>[Issue description and recommendations]</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🔬 Root Cause Analysis</h2>
+    <p><em>This section correlates performance changes with user-initiated changes, distinguishing between user actions, market dynamics, and external factors.</em></p>
+    
+    <div class="root-cause-box">
+      <h3>Issue: [Campaign Name] - [Issue Description]</h3>
+      
+      <p><strong>Performance Change:</strong> Conversions dropped 45% starting March 15, 2026</p>
+      
+      <h4>Change Event Analysis:</h4>
+      <div class="timeline">
+        📅 <strong>March 14, 2026 at 4:23 PM</strong><br>
+        👤 <strong>Changed by:</strong> john@example.com<br>
+        🔧 <strong>Change Type:</strong> Campaign Budget Modified<br>
+        📉 <strong>Impact:</strong> Daily budget reduced from $200 → $50 (-75%)
+      </div>
+      
+      <p class="correlation-score">Correlation Score: 95/100 (Very High Confidence)</p>
+      
+      <ul>
+        <li><strong>Timing:</strong> Change occurred 1 day before metric decline</li>
+        <li><strong>Magnitude:</strong> Budget cut aligns with impression share loss</li>
+        <li><strong>Direct causation:</strong> Budget Lost IS increased from 5% → 78%</li>
+      </ul>
+      
+      <div class="assessment">
+        <strong>Assessment:</strong> Performance decline directly caused by budget reduction. This is a user-initiated change that can be reversed.
+      </div>
+      
+      <p><strong>Recommendation:</strong> Restore budget to $200/day to recover lost impression share.</p>
+      <p><strong>Estimated Impact:</strong> +180% conversions based on lost opportunity analysis.</p>
+    </div>
+
+    <div class="root-cause-box">
+      <h3>Issue: [Campaign Name] - [Issue Description]</h3>
+      
+      <p><strong>Performance Change:</strong> CTR declined 22% gradually over 14 days</p>
+      
+      <h4>Change Event Analysis:</h4>
+      <div class="timeline">
+        ❌ <strong>No user-initiated changes detected</strong> in the 30-day window<br>
+        📊 <strong>Pattern:</strong> Gradual decline over 2 weeks<br>
+        🎯 <strong>All campaigns:</strong> Similar trend observed across account
+      </div>
+      
+      <p class="correlation-score">Correlation Score: 0/100 (No User Change)</p>
+      
+      <div class="assessment">
+        <strong>Assessment:</strong> Performance decline NOT caused by user actions. Likely causes: (1) ad fatigue - ads shown to same audience repeatedly, (2) increased competition - competitors may have increased bids, (3) seasonal factors - market conditions changed.
+      </div>
+      
+      <p><strong>Recommendation:</strong> Refresh ad creative with new copy and visuals. Test new audiences to find untapped segments. Monitor competitor activity.</p>
+      <p><strong>Expected Outcome:</strong> New creative typically recovers 10-20% of lost CTR within first week.</p>
     </div>
   </div>
 
@@ -524,6 +701,16 @@ pandoc /tmp/report.html \
 - [ ] Percentage values formatted with % symbol (e.g., 12.5%)
 - [ ] Status indicators use correct CSS classes (.status-good, .status-warning, .status-critical)
 - [ ] Priority sections use correct CSS classes (.priority-high, .priority-medium, .priority-low)
+- [ ] **Ad Group Analysis section** (when issues detected):
+  - [ ] Includes drill-down tables showing ad group performance
+  - [ ] Uses `.ad-group-finding` class for insights
+  - [ ] Highlights underperforming ad groups with status indicators
+- [ ] **Root Cause Analysis section** (for priority issues):
+  - [ ] Uses `.root-cause-box` class for each analysis
+  - [ ] Includes change event timeline with `.timeline` class
+  - [ ] Shows correlation scores (0-100) with `.correlation-score` class
+  - [ ] Includes assessment with `.assessment` class
+  - [ ] Distinguishes user changes vs market factors
 - [ ] Line breaks added between major sections for readability
 - [ ] Bullet points used for action items and recommendations
 
