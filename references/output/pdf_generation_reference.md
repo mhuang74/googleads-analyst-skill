@@ -625,7 +625,49 @@ The complete report includes the following sections in order:
 
 ## PDF Generation Methods
 
-### Option 1: Using Python with weasyprint (Recommended)
+### Option 1: Using Google Chrome Headless (Recommended)
+
+**Step 1: Generate HTML file with the template above**
+
+Save your report content using the HTML template provided above to `/tmp/report.html`.
+
+**Step 2: Convert to PDF using Chrome**
+
+```bash
+google-chrome --headless --disable-gpu --no-sandbox \
+  --print-to-pdf=/home/mhuang/reports/google_ads_report_{account_name}_{YYYY-MM-DD}.pdf \
+  --run-all-compositor-stages-before-draw \
+  /tmp/report.html
+```
+
+**Alternative Chrome command names:**
+
+```bash
+# Try these if google-chrome is not available:
+chromium-browser --headless --disable-gpu --no-sandbox \
+  --print-to-pdf=google_ads_report_{account_name}_{YYYY-MM-DD}.pdf \
+  --run-all-compositor-stages-before-draw \
+  /tmp/report.html
+
+# Or:
+chromium --headless --disable-gpu --no-sandbox \
+  --print-to-pdf=google_ads_report_{account_name}_{YYYY-MM-DD}.pdf \
+  --run-all-compositor-stages-before-draw \
+  /tmp/report.html
+```
+
+**Why Chrome headless?**
+- **Exceptional rendering quality**: Produces very good-looking, professional reports
+- Industry-standard rendering engine (Blink/Chromium)
+- Perfect CSS3/HTML5 support including gradients, shadows, modern layouts
+- Excellent table rendering with proper spacing and alignment
+- Superior font rendering and anti-aliasing
+- Consistent results across different systems
+- Fast conversion speed
+- No Python dependencies required
+- Native handling of web fonts and modern CSS
+
+### Option 2: Using Python with weasyprint (Alternative)
 
 **Step 1: Generate HTML file with the template above**
 
@@ -652,16 +694,13 @@ HTML(string=html_content).write_pdf('google_ads_report_{account_name}_{YYYY-MM-D
 ```
 
 **Why weasyprint?**
-- Best-in-class CSS3 support for advanced styling
-- Perfect rendering of Google Ads blue gradient header
-- Excellent table rendering with alternating row shading
+- Good CSS3 support for advanced styling
 - Reliable page headers/footers through CSS `@page` rules
-- Superior font rendering and typography control
-- Proper text alignment (left for text, right for numbers)
+- Good font rendering and typography control
 - Supports page-break-inside controls
-- No external dependencies beyond Python library
+- Pure Python solution (useful when Chrome is unavailable)
 
-### Option 2: Using pandoc with weasyprint (Alternative)
+### Option 3: Using pandoc with weasyprint
 
 If you prefer command-line tools over Python:
 
@@ -671,19 +710,6 @@ pandoc /tmp/report.html \
   -o google_ads_report_{account_name}_{YYYY-MM-DD}.pdf \
   --pdf-engine=weasyprint \
   --metadata title="Google Ads Performance Report"
-```
-
-**One-liner with inline HTML:**
-
-```bash
-# Generate HTML and convert to PDF in one step
-cat > /tmp/report.html << 'EOF'
-[HTML content here]
-EOF
-
-pandoc /tmp/report.html \
-  -o google_ads_report_{account_name}_{YYYY-MM-DD}.pdf \
-  --pdf-engine=weasyprint
 ```
 
 **Note:** Pandoc with weasyprint provides similar results to direct weasyprint usage but adds an extra dependency (pandoc).
