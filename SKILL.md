@@ -88,6 +88,12 @@ Common time period formats:
 - **Specific dates**: "2025-01-01 to 2025-01-31 vs 2024-12-01 to 2024-12-31"
 - **Predefined shortcuts**: `LAST_7_DAYS` vs `PREVIOUS_7_DAYS`, `THIS_WEEK` vs `LAST_WEEK`, etc.
 
+**D. Confirm Date Range:**
+- Summarize the resolved date range: "I'll analyze [CURRENT_PERIOD] compared to [PREVIOUS_PERIOD]"
+- Ask: "Does this date range look correct?" (yes/no, or specify different dates)
+- Wait for user confirmation before proceeding to queries
+- If user provides different dates, update the date range and confirm again
+
 ---
 
 ### 2. Querying Campaign Data with mcc-gaql
@@ -95,6 +101,19 @@ Common time period formats:
 > **LOAD REFERENCE:** [references/tools/gaql_validation.md](references/tools/gaql_validation.md) - REQUIRED for all queries
 
 The `mcc-gaql` CLI tool retrieves campaign performance data from Google Ads using GAQL (Google Ads Query Language).
+
+**⚠️ CRITICAL: Always Query Account Info First**
+
+Before running any performance queries, **always** retrieve the actual account name and ID:
+
+```sql
+SELECT
+  customer.id,
+  customer.descriptive_name
+FROM customer
+```
+
+**Use the returned `customer.descriptive_name` for all references** - do NOT guess the account name from the profile name. The profile name is just a local configuration alias and may not match the actual Google Ads account name.
 
 **⚠️ CRITICAL: Always Validate GAQL Before Executing**
 
@@ -343,7 +362,7 @@ Examples:
 - `google_ads_report_acme_corp_2025-11-02.pdf`
 
 Where:
-- `{account_name}`: Sanitized account name (lowercase, underscores for spaces, alphanumeric only)
+- `{account_name}`: Sanitized `customer.descriptive_name` from GAQL query (lowercase, underscores for spaces, alphanumeric only). **Do NOT use the profile name** - always use the actual account name from the API.
 - `{YYYY-MM-DD}`: Today's date (the date the report was generated)
 
 > For complete PDF generation instructions, CSS styling, and appendix formatting, see [references/output/pdf_generation_reference.md](references/output/pdf_generation_reference.md)
