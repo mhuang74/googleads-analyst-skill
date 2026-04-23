@@ -412,15 +412,17 @@ This section applies when the user explicitly requests a setting change — eith
 | Set Target CPA | `Campaign` | `target_cpa.target_cpa_micros=<dollars × 1000000>` |
 | Set Target ROAS | `Campaign` | `target_roas.target_roas=<decimal>` |
 
-#### Four-Step Verification Loop
+#### Five-Step Verification Loop
 
 Every mutation must follow these steps in order:
 
 **Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut`. Display the result clearly.
 
-**Step B — Dry-run (internal self-check):** Run `mcc-gaql-mut mutate --dry-run ...` to validate that the resource name, field path, and value are accepted by the API. This is a self-check — not a user approval step. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry. Proceed to Step C only once dry-run succeeds.
+**Step B — Dry-run (internal self-check):** Run `mcc-gaql-mut mutate --dry-run ...` to validate that the resource name, field path, and value are accepted by the API. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry internally. Do not prompt the user during this loop.
 
-**Step C — Apply:** Drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt. The user's original request is the approval; no additional confirmation is needed. Record the full stdout.
+**Step C — Confirm with user:** Once dry-run succeeds, show the user the exact validated command that will be applied and ask for explicit confirmation before proceeding. This guards against any argument drift that occurred during the dry-run correction loop.
+
+**Step D — Apply:** After user confirms, drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt, and run. Record the full stdout.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -431,9 +433,9 @@ mcc-gaql-mut -p <PROFILE> mutate \
   --yes
 ```
 
-**Step D — Query AFTER:** Re-run the Step-A query and display the new value. If it does not match the intended change, surface the stdout from Steps B and C and stop — do not retry automatically.
+**Step E — Query AFTER:** Re-run the Step-A query and display the new value. If it does not match the intended change, surface the stdout from Steps B and D and stop — do not retry automatically.
 
-**Step E — Summarize:** Present a markdown diff table:
+**Step F — Summarize:** Present a markdown diff table:
 
 ```markdown
 | Field | Before | After | Status |
@@ -532,8 +534,9 @@ Each example shows the complete workflow from authentication to final report del
 - [ ] User explicitly requested the change (not inferred)
 - [ ] Step A: current value queried and shown before any mutation
 - [ ] Step B: dry-run passed (resource name, field path, and value validated by API)
-- [ ] Step C: `--yes` flag used; apply ran immediately after dry-run success; stdout recorded
-- [ ] Step D: after-query confirms change took effect
-- [ ] Step E: markdown diff table (Before / After / Status) presented
+- [ ] Step C: validated command shown to user; explicit confirmation received before applying
+- [ ] Step D: `--yes` flag used; stdout recorded
+- [ ] Step E: after-query confirms change took effect
+- [ ] Step F: markdown diff table (Before / After / Status) presented
 
 > For complete checklist and best practices, see [references/best_practices.md](references/best_practices.md)

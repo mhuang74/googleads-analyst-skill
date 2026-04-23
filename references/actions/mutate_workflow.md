@@ -19,7 +19,7 @@ Only enter the mutate workflow when the user **explicitly requests a change** �
 
 ---
 
-## Four-Step Verification Loop
+## Five-Step Verification Loop
 
 ### Step A — Query BEFORE
 
@@ -33,7 +33,7 @@ Display: "Current state of [field]: [value]"
 
 ### Step B — Dry-run (internal self-check)
 
-Run `--dry-run` to validate that the resource name, field path, and value are accepted by the API. This is an internal self-check — not a user approval step. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry. Proceed to Step C automatically once dry-run succeeds.
+Run `--dry-run` to validate that the resource name, field path, and value are accepted by the API. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry internally. Do not prompt the user during this correction loop.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -44,11 +44,27 @@ mcc-gaql-mut -p <PROFILE> mutate \
   --dry-run
 ```
 
-**⚠️ Do NOT skip dry-run for any mutation — it is the argument-validation gate before apply.**
+**⚠️ Do NOT skip dry-run — it is the argument-validation gate before apply.**
 
-### Step C — Apply
+### Step C — Confirm with user
 
-Once dry-run succeeds, apply immediately using `--yes` to bypass the interactive prompt. The user's original request is the approval — no additional confirmation is needed.
+Once dry-run succeeds, show the user the exact validated command and ask for explicit confirmation before applying. This step exists because the dry-run correction loop may have adjusted arguments (e.g. resolved resource names, converted units) from what the user originally stated.
+
+Example prompt:
+```
+Ready to apply:
+  mcc-gaql-mut -p themade mutate \
+    --resource CampaignBudget \
+    --resource-name "customers/3902228771/campaignBudgets/14789330607" \
+    --operation update \
+    --set "amount_micros=75000000"
+
+This will change the daily budget from $50.00 to $75.00. Proceed?
+```
+
+### Step D — Apply
+
+After user confirms, apply using `--yes` to bypass the interactive prompt.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -61,7 +77,7 @@ mcc-gaql-mut -p <PROFILE> mutate \
 
 Record the full stdout output.
 
-### Step D — Query AFTER
+### Step E — Query AFTER
 
 Re-run the same query from Step A to confirm the change is reflected in the API.
 
@@ -69,7 +85,7 @@ Re-run the same query from Step A to confirm the change is reflected in the API.
 mcc-gaql -p <PROFILE> --format json "<BEFORE_QUERY>"
 ```
 
-### Step E — Summarize
+### Step F — Summarize
 
 Present a markdown diff table:
 
@@ -234,7 +250,7 @@ mcc-gaql-mut -p <PROFILE> mutate \
 **⚠️ CRITICAL SAFETY RULES for remove:**
 - Always run the before-query (Step A) and show the result to the user — confirm you have the right campaign before proceeding.
 - Always dry-run first as internal validation before applying.
-- Because removal is irreversible, explicitly restate to the user what will be removed before running Step C.
+- At Step C (user confirmation), clearly restate the campaign name, ID, and that removal is permanent and irreversible.
 
 **Step A — Before query:**
 ```bash
