@@ -1,7 +1,7 @@
 ---
 name: Generate Google Ads Performance Report
 description: Generate performance report for a Google Ads account. Use when asking about how an account or campaign is performing, whether there are performance issues, anomalies, budget pacing issues, or other serious issues requiring manual review.
-allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*)
+allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*,mcc-gaql-mut-d:*)
 ---
 
 # Generate Google Ads Performance Report
@@ -51,6 +51,7 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
 9. **Present findings as text report** with markdown tables directly in the terminal
 10. **Engage in interactive Q&A** until user is satisfied with the analysis
 11. **Generate PDF reports** (only when user requests, after analysis is complete)
+12. **Apply approved campaign setting changes** (status, name, remove, daily budget, bidding-strategy targets) via `mcc-gaql-mut-d` with a mandatory before/after verification loop
 
 ---
 
@@ -390,12 +391,72 @@ Once the user is happy with the analysis, mention PDF availability:
 
 ---
 
-### 6. Generating PDF Report (Only When Requested)
+### 6. Applying Approved Changes (Mutate Operations)
+
+> **LOAD REFERENCE:** [references/actions/mutate_workflow.md](references/actions/mutate_workflow.md) - for the full verification loop and per-mutation recipes  
+> **LOAD REFERENCE:** [references/tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) - for `mcc-gaql-mut-d` CLI syntax
+
+This section applies when the user explicitly requests a setting change — either as a follow-up to analysis Q&A ("go ahead and pause it") or as a direct request ("change the budget for Brand Search to $75/day").
+
+**Never infer and execute.** Wait for an explicit request before entering this workflow.
+
+#### Supported Mutations
+
+| Goal | Resource | Field / Operation |
+|------|----------|-------------------|
+| Pause a campaign | `Campaign` | `status=PAUSED` |
+| Enable a campaign | `Campaign` | `status=ENABLED` |
+| Rename a campaign | `Campaign` | `name=<new name>` |
+| Remove a campaign | `Campaign` | `--operation remove` |
+| Update daily budget | `CampaignBudget` | `amount_micros=<dollars × 1000000>` |
+| Set Target CPA | `Campaign` | `target_cpa.target_cpa_micros=<dollars × 1000000>` |
+| Set Target ROAS | `Campaign` | `target_roas.target_roas=<decimal>` |
+
+#### Four-Step Verification Loop
+
+Every mutation must follow these steps in order:
+
+**Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut-d`. Display the result clearly.
+
+**Step B — Dry-run (iterate until correct):** Assemble the `mcc-gaql-mut-d mutate --dry-run ...` command, show the command and its output, and iterate on any corrections until the user confirms the command is correct. Always show the dry-run before applying — especially for `remove` operations.
+
+**Step C — Apply:** Drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt (explicit user approval in chat is already captured in Step B), and run. Record the full stdout.
+
+```bash
+mcc-gaql-mut-d -p <PROFILE> mutate \
+  --resource <RESOURCE_TYPE> \
+  --resource-name "<RESOURCE_NAME>" \
+  --operation <update|remove> \
+  --set "<FIELD>=<VALUE>" \
+  --yes
+```
+
+**Step D — Query AFTER:** Re-run the Step-A query and display the new value. If it does not match the intended change, surface the stdout from Steps B and C and stop — do not retry automatically.
+
+**Step E — Summarize:** Present a markdown diff table:
+
+```markdown
+| Field | Before | After | Status |
+|-------|--------|-------|--------|
+| campaign.status | ENABLED | PAUSED | ✅ |
+```
+
+#### Unit Conversions
+
+- **Daily budget / Target CPA**: `micros = dollars × 1,000,000` (e.g. $75 → `75000000`)
+- **Target ROAS**: plain decimal, NOT micros (e.g. 4.5x → `target_roas=4.5`)
+- Micros → dollars for display: `÷ 1,000,000` (same as the read-path conversion in §3)
+
+> For copy-pasteable command templates per mutation type, see [references/actions/mutate_workflow.md](references/actions/mutate_workflow.md)
+
+---
+
+### 7. Generating PDF Report (Only When Requested)
 
 > **LOAD REFERENCE:** [references/output/pdf_generation_reference.md](references/output/pdf_generation_reference.md) - when user requests PDF  
 > **LOAD REFERENCE:** [references/output/appendix.md](references/output/appendix.md) - for detailed data tables
 
-**This section only applies if the user requests a PDF.** Generate a professionally formatted PDF report.
+**This section only applies if the user requests a PDF.** Only generate after analysis and Q&A are complete. Generate a professionally formatted PDF report.
 
 **Report Filename Format:**
 
@@ -466,5 +527,13 @@ Each example shows the complete workflow from authentication to final report del
 - [ ] Interactive Q&A conducted until user satisfied
 - [ ] PDF mentioned only after text report and Q&A
 - [ ] PDF generated only if explicitly requested
+
+### Mutate Operations (if any changes were applied):
+- [ ] User explicitly requested the change (not inferred)
+- [ ] Step A: current value queried and shown before any mutation
+- [ ] Step B: dry-run shown and confirmed by user before applying
+- [ ] Step C: `--yes` flag used (not interactive `echo yes |`); stdout recorded
+- [ ] Step D: after-query confirms change took effect
+- [ ] Step E: markdown diff table (Before / After / Status) presented
 
 > For complete checklist and best practices, see [references/best_practices.md](references/best_practices.md)
