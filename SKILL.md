@@ -1,7 +1,7 @@
 ---
 name: Generate Google Ads Performance Report
 description: Generate performance report for a Google Ads account. Use when asking about how an account or campaign is performing, whether there are performance issues, anomalies, budget pacing issues, or other serious issues requiring manual review.
-allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*,mcc-gaql-mut-d:*)
+allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*,mcc-gaql-mut:*)
 ---
 
 # Generate Google Ads Performance Report
@@ -51,7 +51,7 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
 9. **Present findings as text report** with markdown tables directly in the terminal
 10. **Engage in interactive Q&A** until user is satisfied with the analysis
 11. **Generate PDF reports** (only when user requests, after analysis is complete)
-12. **Apply approved campaign setting changes** (status, name, remove, daily budget, bidding-strategy targets) via `mcc-gaql-mut-d` with a mandatory before/after verification loop
+12. **Apply approved campaign setting changes** (status, name, remove, daily budget, bidding-strategy targets) via `mcc-gaql-mut` with a mandatory before/after verification loop
 
 ---
 
@@ -394,7 +394,7 @@ Once the user is happy with the analysis, mention PDF availability:
 ### 6. Applying Approved Changes (Mutate Operations)
 
 > **LOAD REFERENCE:** [references/actions/mutate_workflow.md](references/actions/mutate_workflow.md) - for the full verification loop and per-mutation recipes  
-> **LOAD REFERENCE:** [references/tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) - for `mcc-gaql-mut-d` CLI syntax
+> **LOAD REFERENCE:** [references/tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) - for `mcc-gaql-mut` CLI syntax
 
 This section applies when the user explicitly requests a setting change — either as a follow-up to analysis Q&A ("go ahead and pause it") or as a direct request ("change the budget for Brand Search to $75/day").
 
@@ -416,14 +416,14 @@ This section applies when the user explicitly requests a setting change — eith
 
 Every mutation must follow these steps in order:
 
-**Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut-d`. Display the result clearly.
+**Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut`. Display the result clearly.
 
-**Step B — Dry-run (iterate until correct):** Assemble the `mcc-gaql-mut-d mutate --dry-run ...` command, show the command and its output, and iterate on any corrections until the user confirms the command is correct. Always show the dry-run before applying — especially for `remove` operations.
+**Step B — Dry-run (iterate until correct):** Assemble the `mcc-gaql-mut mutate --dry-run ...` command, show the command and its output, and iterate on any corrections until the user confirms the command is correct. Always show the dry-run before applying — especially for `remove` operations.
 
 **Step C — Apply:** Drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt (explicit user approval in chat is already captured in Step B), and run. Record the full stdout.
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource <RESOURCE_TYPE> \
   --resource-name "<RESOURCE_NAME>" \
   --operation <update|remove> \

@@ -10,7 +10,7 @@ This index shows all available reference files and when to load them during anal
 | Tool usage & validation | [tools/gaql_validation.md](references/tools/gaql_validation.md) | Before executing ANY GAQL query |
 | mcc-gaql reference | [tools/mcc_gaql_reference.md](references/tools/mcc_gaql_reference.md) | When using mcc-gaql CLI tool |
 | mcc-gaql-gen overview | [tools/gaql_tools_overview.md](references/tools/gaql_tools_overview.md) | When generating queries from natural language |
-| mcc-gaql-mut-d reference | [tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) | When applying approved campaign-setting changes |
+| mcc-gaql-mut reference | [tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) | When applying approved campaign-setting changes |
 | Common errors | [tools/common_errors_reference.md](references/tools/common_errors_reference.md) | When encountering query errors |
 | **Analysis** | | |
 | Metric calculations | [analysis/derived_metrics_reference.md](references/analysis/derived_metrics_reference.md) | Before calculating CPA, ROAS, conversion rate |
@@ -23,7 +23,7 @@ This index shows all available reference files and when to load them during anal
 | Potential cause identification | [correlation/identify_potential_causes.md](references/correlation/identify_potential_causes.md) | When determining root causes of issues |
 | **Actions** | | |
 | Recommendation templates | [actions/action_templates_reference.md](references/actions/action_templates_reference.md) | When formulating specific recommendations |
-| Mutate workflow | [actions/mutate_workflow.md](references/actions/mutate_workflow.md) | Before executing any mcc-gaql-mut-d command |
+| Mutate workflow | [actions/mutate_workflow.md](references/actions/mutate_workflow.md) | Before executing any mcc-gaql-mut command |
 | **Resources** | | |
 | Geographic view vs user location view | [resources/geographic_reporting_views.md](references/resources/geographic_reporting_views.md) | When choosing between geographic_view and user_location_view for geo analysis |
 | **Output** | | |
@@ -103,7 +103,7 @@ references/
 ├── tools/                    # CLI tools usage
 │   ├── gaql_validation.md               # Validation workflow (ALWAYS load)
 │   ├── mcc_gaql_reference.md            # mcc-gaql tool reference
-│   ├── mcc_gaql_mut_reference.md        # mcc-gaql-mut-d tool reference (mutations)
+│   ├── mcc_gaql_mut_reference.md        # mcc-gaql-mut tool reference (mutations)
 │   ├── gaql_tools_overview.md           # Generation guide
 │   └── common_errors_reference.md       # Error troubleshooting
 ├── analysis/                 # Analysis frameworks

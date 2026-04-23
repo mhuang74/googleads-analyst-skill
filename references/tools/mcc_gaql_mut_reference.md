@@ -1,26 +1,22 @@
 # mcc-gaql-mut Reference
 
-This reference covers the `mcc-gaql-mut-d` CLI tool used for mutating Google Ads resources. It is the write-path companion to `mcc-gaql` (read-only queries).
+This reference covers the `mcc-gaql-mut` CLI tool used for mutating Google Ads resources. It is the write-path companion to `mcc-gaql` (read-only queries).
 
 ---
 
 ## Installation / Verification
 
-The debug build is installed as `mcc-gaql-mut-d`. To verify:
-
 ```bash
-which mcc-gaql-mut-d
-mcc-gaql-mut-d --version
+which mcc-gaql-mut
+mcc-gaql-mut --version
 ```
 
-If not found, build from source:
+If not found, install the release build:
 
 ```bash
 cd /rust_dev_cache/projects/googleads/gaql_new_mutate_crate
-cargo build
-# debug binary at: target/debug/mcc-gaql-mut
-# install as:
-cp target/debug/mcc-gaql-mut ~/.local/bin/mcc-gaql-mut-d
+cargo build --release
+cp target/release/mcc-gaql-mut ~/.local/bin/
 ```
 
 ---
@@ -30,13 +26,13 @@ cp target/debug/mcc-gaql-mut ~/.local/bin/mcc-gaql-mut-d
 **Option 1: Using a configured profile (recommended)**
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE_NAME> mutate ...
+mcc-gaql-mut -p <PROFILE_NAME> mutate ...
 ```
 
 **Option 2: Without a profile (explicit parameters)**
 
 ```bash
-mcc-gaql-mut-d -c <CUSTOMER_ID> -m <MCC_ID> -u <USER_EMAIL> mutate ...
+mcc-gaql-mut -c <CUSTOMER_ID> -m <MCC_ID> -u <USER_EMAIL> mutate ...
 ```
 
 The same OAuth tokens and profile configuration used by `mcc-gaql` apply here. See `references/tools/mcc_gaql_reference.md` and `references/tools/common_errors_reference.md` for OAuth troubleshooting.
@@ -46,7 +42,7 @@ The same OAuth tokens and profile configuration used by `mcc-gaql` apply here. S
 ## `mutate` Subcommand Flags
 
 ```
-mcc-gaql-mut-d [AUTH_FLAGS] mutate [OPTIONS]
+mcc-gaql-mut [AUTH_FLAGS] mutate [OPTIONS]
 ```
 
 **Top-level auth flags** (before `mutate`):
@@ -97,7 +93,7 @@ mcc-gaql-mut-d [AUTH_FLAGS] mutate [OPTIONS]
 
 ```bash
 # Step 1: dry-run (preview what will happen)
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -105,7 +101,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
   --dry-run
 
 # Step 2: apply (--yes skips the interactive confirmation)
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -124,14 +120,14 @@ mcc-gaql -p <PROFILE> --format json "
   WHERE campaign.id = <CAMPAIGN_ID>"
 
 # $75/day = 75000000 micros
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource CampaignBudget \
   --resource-name "customers/1234567890/campaignBudgets/14789330607" \
   --operation update \
   --set "amount_micros=75000000" \
   --dry-run
 
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource CampaignBudget \
   --resource-name "customers/1234567890/campaignBudgets/14789330607" \
   --operation update \
@@ -142,7 +138,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 ### Rename a campaign
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -153,7 +149,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 ### Remove a campaign
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation remove \
@@ -165,7 +161,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 ```bash
 # $25.00 target CPA = 25000000 micros
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -177,7 +173,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 ```bash
 # 4.5x ROAS (NOT micros — plain decimal)
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -188,7 +184,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 ### Multi-field update
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/1234567890/campaigns/9876543210" \
   --operation update \
@@ -226,7 +222,7 @@ mcc-gaql -p <PROFILE> --format json "
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `command not found: mcc-gaql-mut-d` | Binary not on PATH | Build and install, see above |
+| `command not found: mcc-gaql-mut` | Binary not on PATH | Build and install, see above |
 | `authentication failed` | Expired OAuth token | Re-run OAuth flow; see `common_errors_reference.md` |
 | `invalid field path` | Wrong `--set` key name | Use `--preview` flag to inspect the protobuf structure |
 | `resource not found` | Wrong `--resource-name` | Re-query resource names using `mcc-gaql` |

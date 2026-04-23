@@ -1,6 +1,6 @@
 # Mutate Workflow Reference
 
-This reference documents the mandatory four-step verification loop for all `mcc-gaql-mut-d` mutations. Every change to a live Google Ads account must follow these steps in order.
+This reference documents the mandatory four-step verification loop for all `mcc-gaql-mut` mutations. Every change to a live Google Ads account must follow these steps in order.
 
 > **Tool reference:** [tools/mcc_gaql_mut_reference.md](../tools/mcc_gaql_mut_reference.md)  
 > **Recommendation templates:** [action_templates_reference.md](action_templates_reference.md)
@@ -23,7 +23,7 @@ Only enter the mutate workflow when the user **explicitly requests a change** �
 
 ### Step A — Query BEFORE
 
-Run `mcc-gaql` to capture the current value(s) and the resource name needed by `mcc-gaql-mut-d`. Display the result clearly before proceeding.
+Run `mcc-gaql` to capture the current value(s) and the resource name needed by `mcc-gaql-mut`. Display the result clearly before proceeding.
 
 ```bash
 mcc-gaql -p <PROFILE> --format json "<BEFORE_QUERY>"
@@ -33,10 +33,10 @@ Display: "Current state of [field]: [value]"
 
 ### Step B — Dry-run (iterate until correct)
 
-Assemble the `mcc-gaql-mut-d mutate --dry-run` command. Show the command and its output to the user. Fix any issues (wrong resource name, unit errors, wrong field path) and repeat until the user confirms the command looks correct.
+Assemble the `mcc-gaql-mut mutate --dry-run` command. Show the command and its output to the user. Fix any issues (wrong resource name, unit errors, wrong field path) and repeat until the user confirms the command looks correct.
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource <RESOURCE_TYPE> \
   --resource-name "<RESOURCE_NAME>" \
   --operation <update|remove> \
@@ -51,7 +51,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 Once the user has confirmed the dry-run command is correct, apply using `--yes` to bypass the interactive prompt.
 
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource <RESOURCE_TYPE> \
   --resource-name "<RESOURCE_NAME>" \
   --operation <update|remove> \
@@ -122,7 +122,7 @@ Note: `campaign_budget.resource_name` (e.g. `customers/123/campaignBudgets/456`)
 **Step B — Dry-run:**
 ```bash
 # $75/day = 75000000 micros
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource CampaignBudget \
   --resource-name "customers/XXXXXXXXXX/campaignBudgets/XXXXXXXXXX" \
   --operation update \
@@ -132,7 +132,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 **Step C — Apply:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource CampaignBudget \
   --resource-name "customers/XXXXXXXXXX/campaignBudgets/XXXXXXXXXX" \
   --operation update \
@@ -163,7 +163,7 @@ mcc-gaql -p <PROFILE> --format json "$QUERY"
 
 **Step B — Dry-run (PAUSED example):**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -174,7 +174,7 @@ Valid status values: `PAUSED`, `ENABLED`
 
 **Step C — Apply:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -205,7 +205,7 @@ mcc-gaql -p <PROFILE> --format json "$QUERY"
 
 **Step B — Dry-run:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -215,7 +215,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 **Step C — Apply:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -248,7 +248,7 @@ mcc-gaql -p <PROFILE> --format json "$QUERY"
 
 **Step B — Dry-run:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation remove \
@@ -257,7 +257,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 **Step C — Apply (only after explicit user confirmation):**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation remove \
@@ -283,7 +283,7 @@ mcc-gaql -p <PROFILE> --format json "$QUERY"
 
 **Step B — Dry-run ($25.00 CPA = 25000000 micros):**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -293,7 +293,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 **Step C — Apply:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -325,7 +325,7 @@ mcc-gaql -p <PROFILE> --format json "$QUERY"
 
 **Step B — Dry-run (4.5x ROAS):**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \
@@ -336,7 +336,7 @@ mcc-gaql-mut-d -p <PROFILE> mutate \
 
 **Step C — Apply:**
 ```bash
-mcc-gaql-mut-d -p <PROFILE> mutate \
+mcc-gaql-mut -p <PROFILE> mutate \
   --resource Campaign \
   --resource-name "customers/XXXXXXXXXX/campaigns/XXXXXXXXXX" \
   --operation update \

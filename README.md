@@ -222,7 +222,7 @@ Only when you request it:
 
 ## 🔧 Technical Requirements
 
-- Access to Google Ads API via `mcc-gaql` tool (read) and `mcc-gaql-mut-d` tool (write)
+- Access to Google Ads API via `mcc-gaql` tool (read) and `mcc-gaql-mut` tool (write)
 - Valid Google Ads account credentials (Profile, MCC ID + Customer ID, or email)
 - At least 7 days of historical data for meaningful comparison
 - Account owner or manager role for access to all campaigns
