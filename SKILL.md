@@ -1,7 +1,7 @@
 ---
 name: Generate Google Ads Performance Report
 description: Generate performance report for a Google Ads account. Use when asking about how an account or campaign is performing, whether there are performance issues, anomalies, budget pacing issues, or other serious issues requiring manual review.
-allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*)
+allowed-tools: Bash(mcc-gaql:*,mcc-gaql-gen:*,mcc-gaql-mut:*)
 ---
 
 # Generate Google Ads Performance Report
@@ -51,6 +51,7 @@ When analyzing Google Ads performance, **ALWAYS prioritize these two critical ob
 9. **Present findings as text report** with markdown tables directly in the terminal
 10. **Engage in interactive Q&A** until user is satisfied with the analysis
 11. **Generate PDF reports** (only when user requests, after analysis is complete)
+12. **Apply approved campaign setting changes** (status, name, remove, daily budget, bidding-strategy targets) via `mcc-gaql-mut` with a mandatory before/after verification loop
 
 ---
 
@@ -72,6 +73,36 @@ If the user doesn't have a profile configured, ask for:
 2. **Customer ID**: "What is the Customer ID of the account to analyze?" (e.g., 9876543210)
 3. **User Email**: "What is your Google account email with access to this account?" (e.g., user@example.com)
 - Command format: `mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> ...`
+
+**Remote OAuth Authentication (for headless/Telegram environments):**
+
+When the user needs to authenticate but can't open a browser on the same machine, use this flow:
+
+1. **Initiate remote auth and capture the URL:**
+   ```bash
+   timeout 10 mcc-gaql --profile <PROFILE> --remote-auth --customer-id <CUSTOMER_ID> --mcc-id <MCC_ID> "SELECT 1" 2>&1 || true
+   ```
+   This outputs a URL like:
+   ```
+   https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/adwords&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob&...
+   ```
+
+2. **Pass the URL to the user** with these instructions:
+   - Open the URL in a browser (on any device)
+   - Sign in with the specified Google account
+   - Grant Google Ads API permissions
+   - Google will display an authorization code starting with `4/...`
+   - Copy and send back the full code
+
+3. **Complete authentication** by piping the code:
+   ```bash
+   echo "4/...auth_code..." | mcc-gaql --profile <PROFILE> --remote-auth --customer-id <CUSTOMER_ID> --mcc-id <MCC_ID> "SELECT 1"
+   ```
+
+4. **Verify** by running a test query without `--remote-auth`:
+   ```bash
+   mcc-gaql --profile <PROFILE> "SELECT campaign.id FROM campaign LIMIT 1"
+   ```
 
 **B. Account Type:**
 - Ask: "Is this a Google Ads Grants account (non-profit)?" (yes/no)
@@ -175,6 +206,8 @@ Assign status to each campaign using the decision tree:
 - 🟡 **MONITOR**: Conversion rate drop 15-30%, CTR drop 10-25%, impression share loss >15%
 - 🔴 **CRITICAL**: Cost increase >20% without conversion improvement, conversion rate drop >30%, CTR drop >25%
 
+**🎗️ GOOGLE ADS GRANTS ACCOUNTS:** These thresholds DON'T apply to Grant accounts during the learning phase. High spend with low conversions is expected for 7-14 days after any bidding/ROAS change while the algorithm trains. Grant "waste" isn't cash loss—it's free credit invested in training. Only escalate Grant accounts if Rank Lost IS >70% or zero conversions persist beyond 14 days.
+
 > See [references/analysis/health_status.md](references/analysis/health_status.md) for complete decision criteria.
 
 #### Step 3: Impression Share Analysis (CRITICAL)
@@ -273,6 +306,15 @@ Dynamic investigation drills down from campaign-level symptoms to specific root 
 
 **Present your analysis as a text report directly in the terminal using markdown formatting.**
 
+**REQUIRED: Always include Account Information in every report:**
+- Customer ID (e.g., `4731266055`)
+- Account alias or descriptive name (e.g., "Dogs on Deployment" or "The Museum of Art and Digital Entertainment")
+
+Query this first if not already retrieved:
+```sql
+SELECT customer.id, customer.descriptive_name FROM customer
+```
+
 #### Step 1: Generate Text Report
 
 After completing baseline analysis and dynamic investigation, present findings as a **text report with markdown tables**. Adapt the structure based on what's relevant:
@@ -280,6 +322,11 @@ After completing baseline analysis and dynamic investigation, present findings a
 **For complex analyses (multiple issues, significant changes):**
 
 ```markdown
+## Account Information
+| Customer ID | Account Name |
+|-------------|--------------|
+| 4731266055  | Dogs on Deployment |
+
 ## Executive Summary
 [2-3 sentences on overall performance and critical actions needed]
 
@@ -344,12 +391,74 @@ Once the user is happy with the analysis, mention PDF availability:
 
 ---
 
-### 6. Generating PDF Report (Only When Requested)
+### 6. Applying Approved Changes (Mutate Operations)
+
+> **LOAD REFERENCE:** [references/actions/mutate_workflow.md](references/actions/mutate_workflow.md) - for the full verification loop and per-mutation recipes  
+> **LOAD REFERENCE:** [references/tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) - for `mcc-gaql-mut` CLI syntax
+
+This section applies when the user explicitly requests a setting change — either as a follow-up to analysis Q&A ("go ahead and pause it") or as a direct request ("change the budget for Brand Search to $75/day").
+
+**Never infer and execute.** Wait for an explicit request before entering this workflow.
+
+#### Supported Mutations
+
+| Goal | Resource | Field / Operation |
+|------|----------|-------------------|
+| Pause a campaign | `Campaign` | `status=PAUSED` |
+| Enable a campaign | `Campaign` | `status=ENABLED` |
+| Rename a campaign | `Campaign` | `name=<new name>` |
+| Remove a campaign | `Campaign` | `--operation remove` |
+| Update daily budget | `CampaignBudget` | `amount_micros=<dollars × 1000000>` |
+| Set Target CPA | `Campaign` | `target_cpa.target_cpa_micros=<dollars × 1000000>` |
+| Set Target ROAS | `Campaign` | `target_roas.target_roas=<decimal>` |
+
+#### Five-Step Verification Loop
+
+Every mutation must follow these steps in order:
+
+**Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut`. Display the result clearly.
+
+**Step B — Dry-run (internal self-check):** Run `mcc-gaql-mut mutate --dry-run ...` to validate that the resource name, field path, and value are accepted by the API. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry internally. Do not prompt the user during this loop.
+
+**Step C — Confirm with user:** Once dry-run succeeds, show the user the exact validated command that will be applied and ask for explicit confirmation before proceeding. This guards against any argument drift that occurred during the dry-run correction loop.
+
+**Step D — Apply:** After user confirms, drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt, and run. Record the full stdout.
+
+```bash
+mcc-gaql-mut -p <PROFILE> mutate \
+  --resource <RESOURCE_TYPE> \
+  --resource-name "<RESOURCE_NAME>" \
+  --operation <update|remove> \
+  --set "<FIELD>=<VALUE>" \
+  --yes
+```
+
+**Step E — Query AFTER:** Re-run the Step-A query and display the new value. If it does not match the intended change, surface the stdout from Steps B and D and stop — do not retry automatically.
+
+**Step F — Summarize:** Present a markdown diff table:
+
+```markdown
+| Field | Before | After | Status |
+|-------|--------|-------|--------|
+| campaign.status | ENABLED | PAUSED | ✅ |
+```
+
+#### Unit Conversions
+
+- **Daily budget / Target CPA**: `micros = dollars × 1,000,000` (e.g. $75 → `75000000`)
+- **Target ROAS**: plain decimal, NOT micros (e.g. 4.5x → `target_roas=4.5`)
+- Micros → dollars for display: `÷ 1,000,000` (same as the read-path conversion in §3)
+
+> For copy-pasteable command templates per mutation type, see [references/actions/mutate_workflow.md](references/actions/mutate_workflow.md)
+
+---
+
+### 7. Generating PDF Report (Only When Requested)
 
 > **LOAD REFERENCE:** [references/output/pdf_generation_reference.md](references/output/pdf_generation_reference.md) - when user requests PDF  
 > **LOAD REFERENCE:** [references/output/appendix.md](references/output/appendix.md) - for detailed data tables
 
-**This section only applies if the user requests a PDF.** Generate a professionally formatted PDF report.
+**This section only applies if the user requests a PDF.** Only generate after analysis and Q&A are complete. Generate a professionally formatted PDF report.
 
 **Report Filename Format:**
 
@@ -414,10 +523,20 @@ Each example shows the complete workflow from authentication to final report del
 - [ ] Recommendations are specific and actionable with quantified impact
 
 ### Reporting Quality:
+- [ ] Account Information section included (Customer ID + Account Name)
 - [ ] Date ranges clearly stated at the top
 - [ ] Text report with markdown tables presented first
 - [ ] Interactive Q&A conducted until user satisfied
 - [ ] PDF mentioned only after text report and Q&A
 - [ ] PDF generated only if explicitly requested
+
+### Mutate Operations (if any changes were applied):
+- [ ] User explicitly requested the change (not inferred)
+- [ ] Step A: current value queried and shown before any mutation
+- [ ] Step B: dry-run passed (resource name, field path, and value validated by API)
+- [ ] Step C: validated command shown to user; explicit confirmation received before applying
+- [ ] Step D: `--yes` flag used; stdout recorded
+- [ ] Step E: after-query confirms change took effect
+- [ ] Step F: markdown diff table (Before / After / Status) presented
 
 > For complete checklist and best practices, see [references/best_practices.md](references/best_practices.md)

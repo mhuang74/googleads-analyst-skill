@@ -6,7 +6,7 @@ Claude Skill for doing Google Ads Performance Analysis
 
 ## 📊 What It Does
 
-The **Google Ads Analyst** skill is a Claude-powered tool that analyzes Google Ads account performance, identifies issues, and provides actionable insights. It goes beyond simple metric reporting by drilling down into root causes and correlating performance changes with account activity.
+The **Google Ads Analyst** skill is a Claude-powered tool that analyzes Google Ads account performance, identifies issues, provides actionable insights, and can apply approved setting changes directly to your account.
 
 ### Key Capabilities
 
@@ -16,6 +16,7 @@ The **Google Ads Analyst** skill is a Claude-powered tool that analyzes Google A
 - **Change Correlation**: Match performance changes with user-initiated account changes using change event analysis (last 30 days)
 - **Evidence-Based Recommendations**: Provide specific, actionable next steps backed by real account data
 - **Interactive Q&A**: Answer follow-up questions and investigate specific concerns
+- **Apply Approved Changes**: Update campaign settings (status, name, daily budget, bidding targets) via a mandatory before/after verification loop
 - **Multiple Output Formats**: Text reports with markdown tables (immediate) + optional professional PDF reports
 
 ---
@@ -136,7 +137,16 @@ Answer your follow-up questions:
 - "Which ad group should I focus on?"
 - Continue until you're satisfied with the analysis
 
-### Phase 5: PDF Report (optional)
+### Phase 5: Apply Approved Changes (optional)
+When you explicitly request a setting change, the skill executes a four-step verification loop:
+1. **Query before** — shows the current value and resource name
+2. **Dry-run** — previews the mutation without applying; iterates until you confirm the command is correct
+3. **Apply** — runs with `--yes` flag; records the result
+4. **Query after** — confirms the change took effect; presents a Before/After summary table
+
+Supported mutations: campaign status (pause/enable), campaign name, campaign remove, daily budget, Target CPA, Target ROAS.
+
+### Phase 6: PDF Report (optional)
 Only when you request it:
 - Professional formatted report with your account name
 - Includes Ad Group Analysis and Root Cause Analysis sections
@@ -212,10 +222,15 @@ Only when you request it:
 
 ## 🔧 Technical Requirements
 
-- Access to Google Ads API via `mcc-gaql` tool
+- Access to Google Ads API via `mcc-gaql` tool (read) and `mcc-gaql-mut` tool (write)
 - Valid Google Ads account credentials (Profile, MCC ID + Customer ID, or email)
 - At least 7 days of historical data for meaningful comparison
 - Account owner or manager role for access to all campaigns
+- **Editor role or higher** to apply campaign setting changes (read-only access is sufficient for analysis only)
+
+### Safety Model for Mutations
+
+The skill never mutates without explicit in-session user approval. Every mutation follows a four-step loop: query current value → dry-run preview (iterated until correct) → apply with `--yes` → confirm via after-query. The skill will not proceed past Step B without the user confirming the dry-run output looks correct.
 
 ---
 
@@ -229,6 +244,7 @@ Only when you request it:
 | **Validate changes** | "Did our bid strategy change help?" |
 | **Deep investigation** | "Let me understand that campaign's performance in detail" |
 | **Optimization advice** | "Where should I focus my budget?" |
+| **Apply a change** | "Pause the Brand - Search campaign" or "Set budget to $75/day" |
 | **Performance report** | "Create a professional report for my stakeholders" |
 
 ---

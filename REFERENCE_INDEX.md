@@ -10,6 +10,7 @@ This index shows all available reference files and when to load them during anal
 | Tool usage & validation | [tools/gaql_validation.md](references/tools/gaql_validation.md) | Before executing ANY GAQL query |
 | mcc-gaql reference | [tools/mcc_gaql_reference.md](references/tools/mcc_gaql_reference.md) | When using mcc-gaql CLI tool |
 | mcc-gaql-gen overview | [tools/gaql_tools_overview.md](references/tools/gaql_tools_overview.md) | When generating queries from natural language |
+| mcc-gaql-mut reference | [tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md) | When applying approved campaign-setting changes |
 | Common errors | [tools/common_errors_reference.md](references/tools/common_errors_reference.md) | When encountering query errors |
 | **Analysis** | | |
 | Metric calculations | [analysis/derived_metrics_reference.md](references/analysis/derived_metrics_reference.md) | Before calculating CPA, ROAS, conversion rate |
@@ -22,6 +23,9 @@ This index shows all available reference files and when to load them during anal
 | Potential cause identification | [correlation/identify_potential_causes.md](references/correlation/identify_potential_causes.md) | When determining root causes of issues |
 | **Actions** | | |
 | Recommendation templates | [actions/action_templates_reference.md](references/actions/action_templates_reference.md) | When formulating specific recommendations |
+| Mutate workflow | [actions/mutate_workflow.md](references/actions/mutate_workflow.md) | Before executing any mcc-gaql-mut command |
+| **Resources** | | |
+| Geographic view vs user location view | [resources/geographic_reporting_views.md](references/resources/geographic_reporting_views.md) | When choosing between geographic_view and user_location_view for geo analysis |
 | **Output** | | |
 | PDF generation | [output/pdf_generation_reference.md](references/output/pdf_generation_reference.md) | Only when user requests PDF report |
 | Appendix formatting | [output/appendix_reference.md](references/output/appendix_reference.md) | When including detailed data tables in PDF |
@@ -66,6 +70,12 @@ Review final checklist before presenting analysis.
 
 Only when user explicitly requests PDF.
 
+### Phase 7: Applying Changes (Optional)
+> **LOAD:** [actions/mutate_workflow.md](references/actions/mutate_workflow.md)  
+> **LOAD:** [tools/mcc_gaql_mut_reference.md](references/tools/mcc_gaql_mut_reference.md)
+
+Only when user explicitly requests a setting change. Follow the four-step verification loop: query before → dry-run → apply (`--yes`) → query after → summarize.
+
 ---
 
 ## Conditional Loading
@@ -82,6 +92,7 @@ Only when user explicitly requests PDF.
 - **Ad fatigue**: [analysis/investigation_patterns_reference.md](references/analysis/investigation_patterns_reference.md)
 - **Performance anomalies**: [correlation/change_correlation_reference.md](references/correlation/change_correlation_reference.md)
 - **PMax issues**: [analysis/investigation_patterns_reference.md](references/analysis/investigation_patterns_reference.md)
+- **Geographic analysis**: [resources/geographic_reporting_views.md](references/resources/geographic_reporting_views.md)
 
 ---
 
@@ -90,24 +101,28 @@ Only when user explicitly requests PDF.
 ```
 references/
 ├── tools/                    # CLI tools usage
-│   ├── gaql_validation.md   # Validation workflow (ALWAYS load)
-│   ├── mcc_gaql_reference.md          # Tool reference
-│   ├── gaql_tools_overview.md  # Generation guide
-│   └── common_errors_reference.md     # Error troubleshooting
+│   ├── gaql_validation.md               # Validation workflow (ALWAYS load)
+│   ├── mcc_gaql_reference.md            # mcc-gaql tool reference
+│   ├── mcc_gaql_mut_reference.md        # mcc-gaql-mut tool reference (mutations)
+│   ├── gaql_tools_overview.md           # Generation guide
+│   └── common_errors_reference.md       # Error troubleshooting
 ├── analysis/                 # Analysis frameworks
-│   ├── derived_metrics_reference.md   # Calculation formulas
-│   ├── health_status.md     # Status & impression share
+│   ├── derived_metrics_reference.md     # Calculation formulas
+│   ├── health_status.md                 # Status & impression share
 │   ├── investigation_patterns_reference.md  # Drill-down strategies
 │   ├── common_performance_patterns_reference.md  # Pattern recognition
 │   └── contextual_analysis_rules_reference.md  # Metric relationships
 ├── correlation/              # Root cause analysis
 │   ├── change_correlation_reference.md  # Change event analysis
-│   └── identify_potential_causes.md  # Cause identification
-├── actions/                  # Recommendations
-│   └── action_templates_reference.md  # Standardized templates
-└── output/                   # Report formatting
-    ├── pdf_generation_reference.md    # PDF creation
-    └── appendix_reference.md          # Detailed tables
+│   └── identify_potential_causes.md     # Cause identification
+├── actions/                  # Recommendations & mutations
+│   ├── action_templates_reference.md    # Standardized recommendation templates
+│   └── mutate_workflow.md               # Four-step mutate verification loop
+├── output/                   # Report formatting
+│   ├── pdf_generation_reference.md      # PDF creation
+│   └── appendix_reference.md            # Detailed tables
+└── resources/                # Supplemental references
+    └── geographic_reporting_views.md    # geographic_view vs user_location_view
 
 workflow_examples.md          # Complete workflow examples
 best_practices.md             # Final checklist
