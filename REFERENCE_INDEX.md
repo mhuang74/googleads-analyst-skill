@@ -22,6 +22,8 @@ This index shows all available reference files and when to load them during anal
 | Potential cause identification | [correlation/identify_potential_causes.md](references/correlation/identify_potential_causes.md) | When determining root causes of issues |
 | **Actions** | | |
 | Recommendation templates | [actions/action_templates_reference.md](references/actions/action_templates_reference.md) | When formulating specific recommendations |
+| **Resources** | | |
+| Geographic view vs user location view | [resources/geographic_reporting_views.md](references/resources/geographic_reporting_views.md) | When choosing between geographic_view and user_location_view for geo analysis |
 | **Output** | | |
 | PDF generation | [output/pdf_generation_reference.md](references/output/pdf_generation_reference.md) | Only when user requests PDF report |
 | Appendix formatting | [output/appendix_reference.md](references/output/appendix_reference.md) | When including detailed data tables in PDF |
@@ -82,6 +84,7 @@ Only when user explicitly requests PDF.
 - **Ad fatigue**: [analysis/investigation_patterns_reference.md](references/analysis/investigation_patterns_reference.md)
 - **Performance anomalies**: [correlation/change_correlation_reference.md](references/correlation/change_correlation_reference.md)
 - **PMax issues**: [analysis/investigation_patterns_reference.md](references/analysis/investigation_patterns_reference.md)
+- **Geographic analysis**: [resources/geographic_reporting_views.md](references/resources/geographic_reporting_views.md)
 
 ---
 
@@ -105,9 +108,11 @@ references/
 │   └── identify_potential_causes.md  # Cause identification
 ├── actions/                  # Recommendations
 │   └── action_templates_reference.md  # Standardized templates
-└── output/                   # Report formatting
-    ├── pdf_generation_reference.md    # PDF creation
-    └── appendix_reference.md          # Detailed tables
+├── output/                   # Report formatting
+│   ├── pdf_generation_reference.md    # PDF creation
+│   └── appendix_reference.md          # Detailed tables
+└── resources/                # Supplemental references
+    └── geographic_reporting_views.md  # geographic_view vs user_location_view
 
 workflow_examples.md          # Complete workflow examples
 best_practices.md             # Final checklist

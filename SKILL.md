@@ -73,6 +73,36 @@ If the user doesn't have a profile configured, ask for:
 3. **User Email**: "What is your Google account email with access to this account?" (e.g., user@example.com)
 - Command format: `mcc-gaql --mcc <MCC_ID> --customer-id <CUSTOMER_ID> --user <USER_EMAIL> ...`
 
+**Remote OAuth Authentication (for headless/Telegram environments):**
+
+When the user needs to authenticate but can't open a browser on the same machine, use this flow:
+
+1. **Initiate remote auth and capture the URL:**
+   ```bash
+   timeout 10 mcc-gaql --profile <PROFILE> --remote-auth --customer-id <CUSTOMER_ID> --mcc-id <MCC_ID> "SELECT 1" 2>&1 || true
+   ```
+   This outputs a URL like:
+   ```
+   https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/adwords&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob&...
+   ```
+
+2. **Pass the URL to the user** with these instructions:
+   - Open the URL in a browser (on any device)
+   - Sign in with the specified Google account
+   - Grant Google Ads API permissions
+   - Google will display an authorization code starting with `4/...`
+   - Copy and send back the full code
+
+3. **Complete authentication** by piping the code:
+   ```bash
+   echo "4/...auth_code..." | mcc-gaql --profile <PROFILE> --remote-auth --customer-id <CUSTOMER_ID> --mcc-id <MCC_ID> "SELECT 1"
+   ```
+
+4. **Verify** by running a test query without `--remote-auth`:
+   ```bash
+   mcc-gaql --profile <PROFILE> "SELECT campaign.id FROM campaign LIMIT 1"
+   ```
+
 **B. Account Type:**
 - Ask: "Is this a Google Ads Grants account (non-profit)?" (yes/no)
 - If unknown, suggest checking: "Grants accounts have a $10K/month cap and $2 max CPC"
@@ -175,6 +205,8 @@ Assign status to each campaign using the decision tree:
 - 🟡 **MONITOR**: Conversion rate drop 15-30%, CTR drop 10-25%, impression share loss >15%
 - 🔴 **CRITICAL**: Cost increase >20% without conversion improvement, conversion rate drop >30%, CTR drop >25%
 
+**🎗️ GOOGLE ADS GRANTS ACCOUNTS:** These thresholds DON'T apply to Grant accounts during the learning phase. High spend with low conversions is expected for 7-14 days after any bidding/ROAS change while the algorithm trains. Grant "waste" isn't cash loss—it's free credit invested in training. Only escalate Grant accounts if Rank Lost IS >70% or zero conversions persist beyond 14 days.
+
 > See [references/analysis/health_status.md](references/analysis/health_status.md) for complete decision criteria.
 
 #### Step 3: Impression Share Analysis (CRITICAL)
@@ -273,6 +305,15 @@ Dynamic investigation drills down from campaign-level symptoms to specific root 
 
 **Present your analysis as a text report directly in the terminal using markdown formatting.**
 
+**REQUIRED: Always include Account Information in every report:**
+- Customer ID (e.g., `4731266055`)
+- Account alias or descriptive name (e.g., "Dogs on Deployment" or "The Museum of Art and Digital Entertainment")
+
+Query this first if not already retrieved:
+```sql
+SELECT customer.id, customer.descriptive_name FROM customer
+```
+
 #### Step 1: Generate Text Report
 
 After completing baseline analysis and dynamic investigation, present findings as a **text report with markdown tables**. Adapt the structure based on what's relevant:
@@ -280,6 +321,11 @@ After completing baseline analysis and dynamic investigation, present findings a
 **For complex analyses (multiple issues, significant changes):**
 
 ```markdown
+## Account Information
+| Customer ID | Account Name |
+|-------------|--------------|
+| 4731266055  | Dogs on Deployment |
+
 ## Executive Summary
 [2-3 sentences on overall performance and critical actions needed]
 
@@ -414,6 +460,7 @@ Each example shows the complete workflow from authentication to final report del
 - [ ] Recommendations are specific and actionable with quantified impact
 
 ### Reporting Quality:
+- [ ] Account Information section included (Customer ID + Account Name)
 - [ ] Date ranges clearly stated at the top
 - [ ] Text report with markdown tables presented first
 - [ ] Interactive Q&A conducted until user satisfied
