@@ -418,9 +418,9 @@ Every mutation must follow these steps in order:
 
 **Step A — Query BEFORE:** Run `mcc-gaql` to capture the current value and the resource name required by `mcc-gaql-mut`. Display the result clearly.
 
-**Step B — Dry-run (iterate until correct):** Assemble the `mcc-gaql-mut mutate --dry-run ...` command, show the command and its output, and iterate on any corrections until the user confirms the command is correct. Always show the dry-run before applying — especially for `remove` operations.
+**Step B — Dry-run (internal self-check):** Run `mcc-gaql-mut mutate --dry-run ...` to validate that the resource name, field path, and value are accepted by the API. This is a self-check — not a user approval step. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry. Proceed to Step C only once dry-run succeeds.
 
-**Step C — Apply:** Drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt (explicit user approval in chat is already captured in Step B), and run. Record the full stdout.
+**Step C — Apply:** Drop `--dry-run`, add `--yes` to bypass the interactive confirmation prompt. The user's original request is the approval; no additional confirmation is needed. Record the full stdout.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -531,8 +531,8 @@ Each example shows the complete workflow from authentication to final report del
 ### Mutate Operations (if any changes were applied):
 - [ ] User explicitly requested the change (not inferred)
 - [ ] Step A: current value queried and shown before any mutation
-- [ ] Step B: dry-run shown and confirmed by user before applying
-- [ ] Step C: `--yes` flag used (not interactive `echo yes |`); stdout recorded
+- [ ] Step B: dry-run passed (resource name, field path, and value validated by API)
+- [ ] Step C: `--yes` flag used; apply ran immediately after dry-run success; stdout recorded
 - [ ] Step D: after-query confirms change took effect
 - [ ] Step E: markdown diff table (Before / After / Status) presented
 

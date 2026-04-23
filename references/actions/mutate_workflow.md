@@ -31,9 +31,9 @@ mcc-gaql -p <PROFILE> --format json "<BEFORE_QUERY>"
 
 Display: "Current state of [field]: [value]"
 
-### Step B — Dry-run (iterate until correct)
+### Step B — Dry-run (internal self-check)
 
-Assemble the `mcc-gaql-mut mutate --dry-run` command. Show the command and its output to the user. Fix any issues (wrong resource name, unit errors, wrong field path) and repeat until the user confirms the command looks correct.
+Run `--dry-run` to validate that the resource name, field path, and value are accepted by the API. This is an internal self-check — not a user approval step. If it fails, diagnose the error (wrong resource name, bad field path, unit mismatch), correct the arguments, and retry. Proceed to Step C automatically once dry-run succeeds.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -44,11 +44,11 @@ mcc-gaql-mut -p <PROFILE> mutate \
   --dry-run
 ```
 
-**⚠️ Do NOT skip dry-run for any mutation — especially `remove` operations.**
+**⚠️ Do NOT skip dry-run for any mutation — it is the argument-validation gate before apply.**
 
 ### Step C — Apply
 
-Once the user has confirmed the dry-run command is correct, apply using `--yes` to bypass the interactive prompt.
+Once dry-run succeeds, apply immediately using `--yes` to bypass the interactive prompt. The user's original request is the approval — no additional confirmation is needed.
 
 ```bash
 mcc-gaql-mut -p <PROFILE> mutate \
@@ -232,9 +232,9 @@ mcc-gaql-mut -p <PROFILE> mutate \
 **Goal:** Permanently remove a campaign. **This is irreversible.**
 
 **⚠️ CRITICAL SAFETY RULES for remove:**
-- Always show the before-query result to the user and confirm the correct campaign before dry-run.
-- Always dry-run and wait for explicit user confirmation before applying.
-- Never combine `--operation remove` with `--yes` in the first attempt — show the dry-run first.
+- Always run the before-query (Step A) and show the result to the user — confirm you have the right campaign before proceeding.
+- Always dry-run first as internal validation before applying.
+- Because removal is irreversible, explicitly restate to the user what will be removed before running Step C.
 
 **Step A — Before query:**
 ```bash
